@@ -1,0 +1,21 @@
+{
+  "week": { "number": 25, "startDate": "2026-06-10", "endDate": "2026-06-16" },
+  "clashes": {
+    "hydra": {
+      "progress": 64.0,
+      "results": [
+        { "player": "[ΚΛΕΩ] Hell", "keys": 3, "damage": "16.61B" },
+        { "player": "iisdroopy", "keys": 3, "damage": "13.99B" },
+        { "player": "Joe", "keys": 3, "damage": 12390000000 }
+      ]
+    },
+    "chimera": {
+      "progress": 85.0,
+      "results": [
+        { "player": "[ΚΛΕΩ] Hell", "keys": 2, "damage": "9.85B" },
+        { "player": "iisdroopy", "keys": 2, "damage": "8.40B" },
+        { "player": "Joe", "keys": 1, "damage": "4.10B" }
+      ]
+    }
+  }
+}

@@ -6,7 +6,7 @@ participation, and week-over-week trends. Runs on your machine, only when you st
 
 - **Framework:** Next.js (App Router, TypeScript) + Tailwind CSS + Recharts
 - **Database:** local **SQLite** file (`data/clash.db`) via libSQL — no accounts, no hosting
-- **Data in:** local scripts (RaidToolkit account dump **or** CSV)
+- **Data in:** Google Sheet sync, JSON upload/paste, or CSV — via the in-app Import page or CLI
 - **Run:** `npm run dev` whenever you want to see the stats
 
 The app runs with **bundled demo data out of the box** — no database needed to see it.
@@ -51,35 +51,44 @@ A week selector (top-right) drives the data; **Export** downloads the current vi
 
 ## Getting weekly data in
 
-### Option A — CSV (reliable, works today)
-After a clash ends, copy each member's keys + damage from the in-game clash screen
-into a CSV and run:
+Three ways to load a week's numbers — all funnel through the same normalize +
+persist pipeline. The in-app **Import** page (sidebar) hosts the first two.
 
-```bash
-npm run import -- data/import.csv
+### Option A — Google Sheet sync (source of truth)
+Keep a Google Sheet as the canonical record and pull it in with a button.
+
+1. Build a sheet (one tab) with these columns:
+   `week_number, start_date, end_date, player, clash_type, keys_used, total_damage[, progress]`
+2. Share it: **File → Share → Publish to web** (CSV), or set link sharing to
+   "Anyone with the link can view".
+3. In the app, open **Import → Google Sheet Sync**, paste the sheet URL, click **Sync**.
+   (Or from the terminal: `npm run sync:sheet -- "<sheet-url>"`.)
+
+Sync is a **mirror**: each `(week, clash)` present in the sheet *replaces* the app's
+data for that pair, so edits and row deletions in the sheet propagate. The sheet is
+the source of truth.
+
+### Option B — JSON import (upload/paste)
+Open **Import → JSON Import**, upload or paste a nested per-week JSON, preview it, and
+click **Import** (upsert). See [`data/sample-week.json`](data/sample-week.json).
+Terminal equivalent: `npm run import:json -- data/sample-week.json`.
+
+```json
+{
+  "week": { "number": 25, "startDate": "2026-06-10", "endDate": "2026-06-16" },
+  "clashes": {
+    "hydra":   { "progress": 64.0, "results": [ { "player": "[ΚΛΕΩ] Hell", "keys": 3, "damage": "16.61B" } ] },
+    "chimera": { "progress": 85.0, "results": [ { "player": "[ΚΛΕΩ] Hell", "keys": 2, "damage": 9850000000 } ] }
+  }
+}
 ```
 
-Columns (header required): `week_number, start_date, end_date, player, clash_type,
-keys_used, total_damage[, progress]`. `total_damage` accepts raw numbers or
-`16.61B` / `250M` shorthand. `clash_type` is `hydra` or `chimera`. See
-[`data/sample-import.csv`](data/sample-import.csv). Re-running is idempotent
-(upserts on week + member + clash).
+### Option C — CSV file
+Same columns as the Google Sheet. Run `npm run import -- data/import.csv` (see
+[`data/sample-import.csv`](data/sample-import.csv)).
 
-### Option B — RaidToolkit (automation, unverified)
-[RaidToolkit](https://raidtoolkit.com/pages/installation/) runs locally and exposes
-a WebSocket API at `wss://localhost:9090`. The pipeline:
-
-```bash
-npm install @raid-toolkit/webclient   # one-time
-npm run extract                       # saves data/raw/dump-*.json + prints its keys
-npm run sync -- --week 25 --start 2026-06-10 --end 2026-06-16
-```
-
-> ⚠️ It is **not yet confirmed** that the account dump contains per-member Hydra/
-> Chimera clash damage history. `npm run extract` saves the raw dump so you can
-> inspect it; if the clash data is there, finish the field mapping in
-> [`scripts/rtk/normalize.ts`](scripts/rtk/normalize.ts). If it isn't, use the CSV
-> path above — the dashboard works the same either way.
+`total_damage` accepts raw numbers or `16.61B` / `250M` shorthand everywhere.
+JSON and CSV imports upsert on (week, member, clash); the Sheet sync mirrors.
 
 ## Sharing it later (optional)
 
@@ -97,9 +106,10 @@ No application code changes — only the connection string.
 ## Project layout
 
 ```
-app/            routes (dashboard, hydra, chimera, timeline, members, settings)
+app/            routes (dashboard, hydra, chimera, timeline, members, import, settings)
+app/api/        import (JSON) + sheet-sync (Google Sheet) write endpoints
 components/     UI (Sidebar, ClashCard, PerformanceTable, TimelineStrip, DonutSummary, ...)
-lib/            types, formatting, compute (derived metrics), db client, data loader, mock seed
+lib/            types, formatting, compute, db client, data loader, parse/import/persist, sheets, mock seed
 db/             schema.sql (SQLite)
-scripts/        db-init, seed, CSV import, RaidToolkit extract/normalize/sync
+scripts/        db-init, seed, import (csv/json), sync:sheet
 ```

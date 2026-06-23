@@ -38,9 +38,6 @@ yarn-error.log*
 /data/clash.db
 /data/clash.db-*
 
-# raw RaidToolkit dumps (may contain account data)
-/data/raw/
-
 # vercel
 .vercel
 

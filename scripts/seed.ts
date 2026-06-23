@@ -1,8 +1,9 @@
-// Seeds Supabase with the bundled sample dataset (the same data the app shows
-// in demo mode). Run once after applying the migration: `npm run seed`.
+// Seeds the local SQLite DB with the bundled sample dataset (same data the app
+// shows in demo mode). Run after `npm run db:init`: `npm run seed`.
+import "./lib/load-env";
 import { CLASH_META, CLASH_RESULTS, MEMBERS, WEEKS } from "../lib/mock-data";
-import { persist, type ProgressInfo, type WeekInfo } from "./lib/persist";
-import type { NormalizedRow } from "./lib/db";
+import { persist } from "../lib/persist";
+import type { NormalizedRow, ProgressInfo, WeekInfo } from "../lib/import";
 
 const memberName = new Map(MEMBERS.map((m) => [m.id, m.inGameName]));
 const weekNum = new Map(WEEKS.map((w) => [w.id, w.weekNumber]));
@@ -27,9 +28,9 @@ const progress: ProgressInfo[] = CLASH_META.map((m) => ({
   progress: m.progress,
 }));
 
-persist(rows, weeks, progress)
-  .then(() => {
-    console.log("Seed complete.");
+persist({ rows, weeks, progress }, "upsert")
+  .then((s) => {
+    console.log(`Seed complete: ${s.results} results across weeks ${s.weekNumbers.join(", ")}.`);
     process.exit(0);
   })
   .catch((err) => {

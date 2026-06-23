@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Database, CheckCircle2, AlertTriangle, Users, Swords } from "lucide-react";
 import { loadDataset, getDataSource } from "@/lib/data";
 import { DATABASE_URL, isRemoteDb } from "@/lib/db";
@@ -80,9 +81,9 @@ export default async function SettingsPage() {
         <h2 className="mb-2 text-lg font-semibold">Updating the Data</h2>
         <ol className="ml-5 list-decimal space-y-1.5 text-sm text-muted">
           <li>One-time: <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:init</code> creates the local database.</li>
-          <li>After a clash ends, run <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import -- data/import.csv</code> (CSV) or <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run sync</code> (RaidToolkit) to write the week&apos;s numbers.</li>
+          <li>After a clash ends, add the week&apos;s numbers via the <Link href="/import" className="text-text underline underline-offset-2 hover:text-hydra">Import</Link> page — sync a Google Sheet, or upload/paste JSON.</li>
+          <li>Prefer the terminal? <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run sync:sheet</code>, <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import:json</code>, or <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import</code> (CSV) do the same.</li>
           <li>Start the app with <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run dev</code> whenever you want to view stats.</li>
-          <li>No clash data in the RaidToolkit dump? Use the CSV path — it works the same (see the project README).</li>
         </ol>
       </section>
     </div>

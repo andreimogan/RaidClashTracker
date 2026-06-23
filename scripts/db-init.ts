@@ -1,13 +1,15 @@
 // Initializes (or upgrades) the local SQLite database by applying db/schema.sql.
 // Safe to re-run — all statements use IF NOT EXISTS. Run: `npm run db:init`.
+import "./lib/load-env";
 import { readFileSync, mkdirSync } from "node:fs";
-import { db, DATABASE_URL } from "./lib/db";
+import { getDb, DATABASE_URL } from "../lib/db";
 
 async function main() {
   // Ensure the parent dir exists for the default local file path.
   if (DATABASE_URL.startsWith("file:")) {
     mkdirSync("data", { recursive: true });
   }
+  const db = getDb();
 
   const schema = readFileSync("db/schema.sql", "utf8");
   // Strip comment lines first, then split into individual statements. PRAGMA is
