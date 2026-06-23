@@ -2,7 +2,7 @@
 // in demo mode). Run once after applying the migration: `npm run seed`.
 import { CLASH_META, CLASH_RESULTS, MEMBERS, WEEKS } from "../lib/mock-data";
 import { persist, type ProgressInfo, type WeekInfo } from "./lib/persist";
-import type { NormalizedRow } from "./lib/admin";
+import type { NormalizedRow } from "./lib/db";
 
 const memberName = new Map(MEMBERS.map((m) => [m.id, m.inGameName]));
 const weekNum = new Map(WEEKS.map((w) => [w.id, w.weekNumber]));

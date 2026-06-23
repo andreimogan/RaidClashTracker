@@ -11,7 +11,7 @@
 //   - progress (optional): clan clash completion %, applies per (week, clash)
 import { readFileSync } from "node:fs";
 import { persist, type ProgressInfo, type WeekInfo } from "./lib/persist";
-import type { NormalizedRow } from "./lib/admin";
+import type { NormalizedRow } from "./lib/db";
 
 function parseCsv(text: string): Record<string, string>[] {
   const rows: string[][] = [];

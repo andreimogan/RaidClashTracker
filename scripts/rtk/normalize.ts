@@ -5,7 +5,7 @@
 // it and throws a clear message (pointing to the CSV path) if it can't. Once you
 // have a real dump (from `npm run extract`), open data/raw/dump-*.json, find the
 // clan/clash structures, and replace the heuristic below with an exact mapping.
-import type { NormalizedRow } from "../lib/admin";
+import type { NormalizedRow } from "../lib/db";
 
 type ClashType = "hydra" | "chimera";
 

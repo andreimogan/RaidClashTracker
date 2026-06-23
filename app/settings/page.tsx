@@ -1,9 +1,13 @@
 import { Database, CheckCircle2, AlertTriangle, Users, Swords } from "lucide-react";
-import { isSupabaseConfigured } from "@/lib/supabase";
-import { loadDataset } from "@/lib/data";
+import { loadDataset, getDataSource } from "@/lib/data";
+import { DATABASE_URL, isRemoteDb } from "@/lib/db";
+
+// Reflects live DB state (seeded vs demo), so render per-request.
+export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const ds = await loadDataset();
+  const source = await getDataSource();
   const activeMembers = ds.members.filter((m) => m.isActive).length;
 
   return (
@@ -36,15 +40,20 @@ export default async function SettingsPage() {
 
       <section className="rounded-2xl border border-border bg-panel p-5">
         <h2 className="mb-4 text-lg font-semibold">Data Source</h2>
-        {isSupabaseConfigured ? (
+        {source === "sqlite" ? (
           <div className="flex items-start gap-3 rounded-xl border border-hydra/30 bg-hydra/5 p-4">
             <CheckCircle2 className="mt-0.5 text-hydra" size={20} />
             <div>
-              <div className="font-medium text-hydra">Connected to Supabase</div>
+              <div className="font-medium text-hydra">
+                {isRemoteDb ? "Connected to remote database" : "Local database"}
+              </div>
               <p className="mt-1 text-sm text-muted">
-                Live data is being read from your Supabase project. Run{" "}
+                Reading live data from{" "}
+                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">{DATABASE_URL}</code>.
+                Run{" "}
+                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import</code> or{" "}
                 <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run sync</code>{" "}
-                after each clash to push the latest numbers.
+                after each clash to update it.
               </p>
             </div>
           </div>
@@ -54,12 +63,13 @@ export default async function SettingsPage() {
             <div>
               <div className="font-medium text-gold">Demo mode (seed data)</div>
               <p className="mt-1 text-sm text-muted">
-                Supabase isn&apos;t configured, so the dashboard is showing bundled sample data.
-                Add{" "}
-                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">NEXT_PUBLIC_SUPABASE_URL</code>{" "}
-                and{" "}
-                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>{" "}
-                to your environment to connect live data.
+                The local database isn&apos;t set up yet, so the dashboard is showing bundled
+                sample data. Run{" "}
+                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:init</code>{" "}
+                then{" "}
+                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run seed</code>{" "}
+                to create and populate{" "}
+                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">data/clash.db</code>.
               </p>
             </div>
           </div>
@@ -69,10 +79,10 @@ export default async function SettingsPage() {
       <section className="rounded-2xl border border-border bg-panel p-5">
         <h2 className="mb-2 text-lg font-semibold">Updating the Data</h2>
         <ol className="ml-5 list-decimal space-y-1.5 text-sm text-muted">
-          <li>After a clash ends, run the RaidToolkit extractor on your PC (<code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run sync</code>).</li>
-          <li>It reads your account dump, normalizes the clash data, and upserts it into Supabase.</li>
-          <li>This site reads from Supabase, so clanmates see the update on refresh.</li>
-          <li>No clash data in the dump? Use the CSV import path instead (see the project README).</li>
+          <li>One-time: <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:init</code> creates the local database.</li>
+          <li>After a clash ends, run <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import -- data/import.csv</code> (CSV) or <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run sync</code> (RaidToolkit) to write the week&apos;s numbers.</li>
+          <li>Start the app with <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run dev</code> whenever you want to view stats.</li>
+          <li>No clash data in the RaidToolkit dump? Use the CSV path — it works the same (see the project README).</li>
         </ol>
       </section>
     </div>

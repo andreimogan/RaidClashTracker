@@ -34,6 +34,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local SQLite database (personal clan data)
+/data/clash.db
+/data/clash.db-*
+
 # raw RaidToolkit dumps (may contain account data)
 /data/raw/
 

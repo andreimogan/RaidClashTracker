@@ -1,5 +1,5 @@
 // Shared upsert logic used by the seed, CSV import, and RTK sync scripts.
-import { admin, type NormalizedRow } from "./admin";
+import { db, type NormalizedRow } from "./db";
 
 export interface WeekInfo {
   weekNumber: number;
@@ -23,47 +23,53 @@ export async function persist(
   weeks: WeekInfo[],
   progress: ProgressInfo[] = [],
 ) {
-  // 1) Upsert members (preserve existing level/hero data; only set name on create).
-  const members = [...new Map(rows.map((r) => [r.memberName, r.memberName])).keys()].map(
-    (name) => ({ id: slug(name), in_game_name: name }),
-  );
-  let res = await admin.from("members").upsert(members, { onConflict: "id" });
-  if (res.error) throw res.error;
-
-  // 2) Upsert weeks.
-  const weekRows = weeks.map((w) => ({
-    id: weekId(w.weekNumber),
-    week_number: w.weekNumber,
-    start_date: w.startDate,
-    end_date: w.endDate,
+  // 1) Members — set name on create, refresh on conflict (preserve other cols).
+  const memberNames = [...new Set(rows.map((r) => r.memberName))];
+  const memberStmts = memberNames.map((name) => ({
+    sql: `insert into members (id, in_game_name) values (?, ?)
+          on conflict(id) do update set in_game_name = excluded.in_game_name`,
+    args: [slug(name), name],
   }));
-  res = await admin.from("weeks").upsert(weekRows, { onConflict: "id" });
-  if (res.error) throw res.error;
 
-  // 3) Upsert clash results (idempotent on week+member+clash).
-  const resultRows = rows.map((r) => ({
-    id: `${weekId(r.weekNumber)}-${slug(r.memberName)}-${r.clashType}`,
-    week_id: weekId(r.weekNumber),
-    member_id: slug(r.memberName),
-    clash_type: r.clashType,
-    keys_used: r.keysUsed,
-    total_damage: r.totalDamage,
+  // 2) Weeks.
+  const weekStmts = weeks.map((w) => ({
+    sql: `insert into weeks (id, week_number, start_date, end_date) values (?, ?, ?, ?)
+          on conflict(id) do update set
+            week_number = excluded.week_number,
+            start_date  = excluded.start_date,
+            end_date    = excluded.end_date`,
+    args: [weekId(w.weekNumber), w.weekNumber, w.startDate, w.endDate],
   }));
-  res = await admin.from("clash_results").upsert(resultRows, { onConflict: "id" });
-  if (res.error) throw res.error;
 
-  // 4) Upsert per-clash progress meta when provided.
-  if (progress.length) {
-    const metaRows = progress.map((p) => ({
-      week_id: weekId(p.weekNumber),
-      clash_type: p.clashType,
-      progress: p.progress,
-    }));
-    res = await admin.from("clash_meta").upsert(metaRows, { onConflict: "week_id,clash_type" });
-    if (res.error) throw res.error;
-  }
+  // 3) Clash results — idempotent on week+member+clash.
+  const resultStmts = rows.map((r) => ({
+    sql: `insert into clash_results (id, week_id, member_id, clash_type, keys_used, total_damage)
+          values (?, ?, ?, ?, ?, ?)
+          on conflict(id) do update set
+            keys_used    = excluded.keys_used,
+            total_damage = excluded.total_damage`,
+    args: [
+      `${weekId(r.weekNumber)}-${slug(r.memberName)}-${r.clashType}`,
+      weekId(r.weekNumber),
+      slug(r.memberName),
+      r.clashType,
+      r.keysUsed,
+      r.totalDamage,
+    ],
+  }));
+
+  // 4) Per-clash progress meta when provided.
+  const metaStmts = progress.map((p) => ({
+    sql: `insert into clash_meta (week_id, clash_type, progress) values (?, ?, ?)
+          on conflict(week_id, clash_type) do update set progress = excluded.progress`,
+    args: [weekId(p.weekNumber), p.clashType, p.progress],
+  }));
+
+  // Members and weeks must exist before results reference them.
+  await db.batch([...memberStmts, ...weekStmts], "write");
+  await db.batch([...resultStmts, ...metaStmts], "write");
 
   console.log(
-    `Upserted ${members.length} members, ${weekRows.length} weeks, ${resultRows.length} results.`,
+    `Upserted ${memberStmts.length} members, ${weekStmts.length} weeks, ${resultStmts.length} results.`,
   );
 }
