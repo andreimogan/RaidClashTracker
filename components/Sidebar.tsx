@@ -12,6 +12,7 @@ import {
   Settings,
 } from "lucide-react";
 import { Avatar } from "./Avatar";
+import { CLAN_CAP } from "@/lib/constants";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -23,7 +24,7 @@ const NAV = [
   { href: "/settings", label: "Clan Settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ activeCount = CLAN_CAP }: { activeCount?: number }) {
   const pathname = usePathname();
 
   return (
@@ -70,10 +71,13 @@ export function Sidebar() {
           </div>
           <div className="mt-3 flex items-center justify-between text-xs text-muted">
             <span>Members</span>
-            <span className="text-text">30/30</span>
+            <span className="text-text">{activeCount}/{CLAN_CAP}</span>
           </div>
           <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border">
-            <div className="h-full w-full rounded-full bg-gradient-to-r from-gold to-amber-300" />
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-gold to-amber-300"
+              style={{ width: `${(activeCount / CLAN_CAP) * 100}%` }}
+            />
           </div>
         </div>
 

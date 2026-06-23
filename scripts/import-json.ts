@@ -10,7 +10,7 @@ import { normalizeFlatResults, normalizeWeekJson, type ClashType } from "../lib/
 import { persist } from "../lib/persist";
 import { loadDataset } from "../lib/data";
 import { sortedWeeks } from "../lib/compute";
-import { currentWeekFromCadence } from "../lib/week";
+import { clashWindow, currentWeek, weekWednesday } from "../lib/week";
 
 const flag = (name: string): string | undefined => {
   const i = process.argv.indexOf(`--${name}`);
@@ -30,16 +30,13 @@ async function main() {
       throw new Error('A flat array needs --clash hydra|chimera.');
     }
     const weeks = sortedWeeks(await loadDataset());
-    const current = currentWeekFromCadence(weeks);
+    const current = currentWeek(weeks);
     const weekNumber = flag("week") ? Number(flag("week")) : current.weekNumber;
-    const existing = weeks.find((w) => w.weekNumber === weekNumber);
-    const startDate =
-      flag("start") ?? existing?.startDate ?? (weekNumber === current.weekNumber ? current.startDate : undefined);
-    const endDate =
-      flag("end") ?? existing?.endDate ?? (weekNumber === current.weekNumber ? current.endDate : undefined);
-    if (!startDate || !endDate) {
-      throw new Error(`Provide --start and --end (new week ${weekNumber} has no stored dates).`);
-    }
+    // Canonical week dates (Hydra Wed→next-Wed) derived from the schedule.
+    const wed = weekWednesday(current.weekNumber, current.startDate, weekNumber);
+    const canonical = clashWindow(wed, "hydra");
+    const startDate = flag("start") ?? canonical.startDate;
+    const endDate = flag("end") ?? canonical.endDate;
     const progress = flag("progress") != null ? Number(flag("progress")) : null;
 
     const payload = normalizeFlatResults(parsed, { weekNumber, startDate, endDate, clashType: clash, progress });

@@ -35,6 +35,15 @@ function weekByNumber(ds: Dataset, weekNumber: number): Week | undefined {
   return ds.weeks.find((w) => w.weekNumber === weekNumber);
 }
 
+// Members present in the latest week's data (any clash) = the current roster.
+// Membership varies week to week, so "active" is derived, not a stored flag.
+export function activeMemberIds(ds: Dataset): Set<string> {
+  const latest = latestWeekNumber(ds);
+  const week = weekByNumber(ds, latest);
+  if (!week) return new Set();
+  return new Set(ds.results.filter((r) => r.weekId === week.id).map((r) => r.memberId));
+}
+
 function resultsFor(ds: Dataset, weekId: string, clash: PerfScope): ClashResult[] {
   return ds.results.filter(
     (r) => r.weekId === weekId && (clash === "total" || r.clashType === clash),
@@ -79,7 +88,9 @@ export function getOverview(
     totalDamage,
     avgDamagePerKey: totalKeys ? totalDamage / totalKeys : 0,
     membersParticipated: participants.length,
-    totalMembers: ds.members.filter((m) => m.isActive).length,
+    // Roster present for this week + clash (participants + benched 0-key rows),
+    // not the all-time member count — the roster varies week to week.
+    totalMembers: rows.length,
     progress: meta?.progress ?? 0,
   };
 }

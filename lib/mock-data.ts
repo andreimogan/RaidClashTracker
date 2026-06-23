@@ -12,12 +12,14 @@ function makeRng(seed: number) {
   };
 }
 
+// Hydra weeks: start on a Wednesday, end the following Wednesday (canonical
+// week window). Per-clash display windows are derived in lib/week.ts.
 export const WEEKS: Week[] = [
-  { id: "w20", weekNumber: 20, startDate: "2026-05-06", endDate: "2026-05-12" },
-  { id: "w21", weekNumber: 21, startDate: "2026-05-13", endDate: "2026-05-19" },
-  { id: "w22", weekNumber: 22, startDate: "2026-05-20", endDate: "2026-05-26" },
-  { id: "w23", weekNumber: 23, startDate: "2026-05-27", endDate: "2026-06-02" },
-  { id: "w24", weekNumber: 24, startDate: "2026-06-03", endDate: "2026-06-09" },
+  { id: "w20", weekNumber: 20, startDate: "2026-05-06", endDate: "2026-05-13" },
+  { id: "w21", weekNumber: 21, startDate: "2026-05-13", endDate: "2026-05-20" },
+  { id: "w22", weekNumber: 22, startDate: "2026-05-20", endDate: "2026-05-27" },
+  { id: "w23", weekNumber: 23, startDate: "2026-05-27", endDate: "2026-06-03" },
+  { id: "w24", weekNumber: 24, startDate: "2026-06-03", endDate: "2026-06-10" },
 ];
 
 // Named members from the mockup come first (with tuned strength), then filler.

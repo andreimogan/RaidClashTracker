@@ -76,6 +76,16 @@ array**, choose the **week** (defaults to the current clash week), the **clash**
 [`data/sample-week-flat.json`](data/sample-week-flat.json) — the same shape as the
 in-game export.
 
+Dates aren't entered by hand — they're derived from each clash's real schedule
+(UTC) and shown read-only:
+
+- **Hydra** runs **Wed → the following Wed** (starts Wed 14:00, ends Wed 08:00 UTC).
+- **Chimera** runs **Fri → the following Thu** (starts Fri 11:30, ends Thu 11:30 UTC).
+
+Both clashes in week _N_ belong to the same calendar week (Chimera's Friday is two
+days after Hydra's Wednesday). The dashboard's clash cards/detail show each clash's
+own date range.
+
 ```json
 [
   { "rank": 1, "player_name": "[ΚΛΕΩ] Hell", "damage_dealt": "16.61B", "keys_used": 3 },

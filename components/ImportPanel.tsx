@@ -5,8 +5,8 @@ import Link from "next/link";
 import { FileJson, Sheet, Upload, RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { normalizeFlatResults, type ClashType } from "@/lib/import";
 import { formatDamage, formatDateRange } from "@/lib/format";
+import { clashWindow, weekWednesday, type CurrentWeek } from "@/lib/week";
 import type { PersistSummary } from "@/lib/persist";
-import type { CurrentWeek } from "@/lib/week";
 
 type WeekOpt = { weekNumber: number; startDate: string; endDate: string };
 
@@ -60,19 +60,15 @@ export function ImportPanel({
   }, [weeks, existingNumbers, currentWeek]);
 
   const [weekNumber, setWeekNumber] = useState(currentWeek.weekNumber);
-  const [startDate, setStartDate] = useState(currentWeek.startDate);
-  const [endDate, setEndDate] = useState(currentWeek.endDate);
   const [clashType, setClashType] = useState<ClashType>("hydra");
   const [progress, setProgress] = useState("");
 
-  function pickWeek(num: number) {
-    setWeekNumber(num);
-    const match = weekOptions.find((w) => w.weekNumber === num);
-    if (match) {
-      setStartDate(match.startDate);
-      setEndDate(match.endDate);
-    }
-  }
+  // Dates are derived from the clash schedule, not entered by hand:
+  // `window` = the selected clash's display dates; `canonical` = the Hydra
+  // Wed→next-Wed window stored on the week row.
+  const wed = weekWednesday(currentWeek.weekNumber, currentWeek.startDate, weekNumber);
+  const clashDates = clashWindow(wed, clashType);
+  const canonical = clashWindow(wed, "hydra");
 
   // ---- JSON payload ----
   const [json, setJson] = useState("");
@@ -87,8 +83,8 @@ export function ImportPanel({
       const arr = JSON.parse(json);
       const { rows } = normalizeFlatResults(arr, {
         weekNumber,
-        startDate,
-        endDate,
+        startDate: canonical.startDate,
+        endDate: canonical.endDate,
         clashType,
         progress: progress === "" ? null : Number(progress),
       });
@@ -101,7 +97,7 @@ export function ImportPanel({
     } catch (err) {
       return { ok: false as const, error: err instanceof Error ? err.message : "Invalid JSON." };
     }
-  }, [json, weekNumber, startDate, endDate, clashType, progress]);
+  }, [json, weekNumber, clashType, progress, canonical.startDate, canonical.endDate]);
 
   async function onFile(file: File) {
     setJson(await file.text());
@@ -120,8 +116,6 @@ export function ImportPanel({
         body: JSON.stringify({
           results: JSON.parse(json),
           weekNumber,
-          startDate,
-          endDate,
           clashType,
           progress: progress === "" ? null : Number(progress),
         }),
@@ -191,13 +185,13 @@ export function ImportPanel({
           . Choose the week &amp; clash below; importing <strong>replaces</strong> that week&apos;s clash.
         </p>
 
-        {/* week / clash / progress controls */}
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* week / clash / progress controls — dates are derived from the schedule */}
+        <div className="mb-3 flex flex-wrap items-end gap-4">
           <label className="flex flex-col gap-1">
             <span className="text-xs text-muted">Week</span>
             <select
               value={weekNumber}
-              onChange={(e) => pickWeek(Number(e.target.value))}
+              onChange={(e) => setWeekNumber(Number(e.target.value))}
               className={`${fieldCls} cursor-pointer`}
             >
               {weekOptions.map((w) => (
@@ -213,21 +207,10 @@ export function ImportPanel({
             <input
               type="number"
               value={weekNumber}
-              onChange={(e) => pickWeek(Number(e.target.value))}
-              className={fieldCls}
+              onChange={(e) => setWeekNumber(Number(e.target.value))}
+              className={`${fieldCls} w-24`}
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted">Start date</span>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={fieldCls} />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted">End date</span>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={fieldCls} />
-          </label>
-        </div>
-
-        <div className="mb-4 flex flex-wrap items-end gap-4">
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted">Clash</span>
             <div className="flex items-center gap-1 rounded-lg border border-border bg-panel-2 p-1">
@@ -258,9 +241,18 @@ export function ImportPanel({
               value={progress}
               onChange={(e) => setProgress(e.target.value)}
               placeholder="62.5"
-              className={`${fieldCls} w-32`}
+              className={`${fieldCls} w-28`}
             />
           </label>
+        </div>
+
+        {/* derived schedule dates (read-only) */}
+        <div className="mb-4 inline-flex items-center gap-2 rounded-lg border border-border bg-panel-2 px-3 py-2 text-sm">
+          <span className={`font-medium capitalize ${clashType === "hydra" ? "text-hydra" : "text-chimera"}`}>
+            {clashType} clash
+          </span>
+          <span className="text-muted">·</span>
+          <span className="text-text">{formatDateRange(clashDates.startDate, clashDates.endDate)} UTC</span>
         </div>
 
         <div className="mb-3 flex flex-wrap items-center gap-3">

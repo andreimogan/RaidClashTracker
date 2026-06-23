@@ -11,7 +11,8 @@ import { ClashCard } from "./ClashCard";
 import { ClashTable } from "./ClashTable";
 import { WeeklyBarChart } from "./WeeklyBarChart";
 import { TopBar, type ExportData } from "./TopBar";
-import { formatDamage, formatKeys } from "@/lib/format";
+import { formatDamage, formatDateRange, formatKeys } from "@/lib/format";
+import { clashWindow } from "@/lib/week";
 
 export async function ClashDetailView({
   clashType,
@@ -29,6 +30,14 @@ export async function ClashDetailView({
   const rows = getPerformance(ds, selectedWeek, clashType);
   const timeline = getTimeline(ds);
   const title = clashType === "hydra" ? "Hydra Clash" : "Chimera Clash";
+
+  const weekObj = sortedWeeks(ds).find((w) => w.weekNumber === selectedWeek);
+  const dateRange = weekObj
+    ? (() => {
+        const win = clashWindow(weekObj.startDate, clashType);
+        return formatDateRange(win.startDate, win.endDate);
+      })()
+    : undefined;
 
   const exportData: ExportData = {
     filename: `${clashType}-week-${selectedWeek}.csv`,
@@ -49,7 +58,7 @@ export async function ClashDetailView({
       <TopBar title={title} weekNumbers={weekNumbers} currentWeek={selectedWeek} exportData={exportData} />
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="xl:col-span-2">
-          <ClashCard stats={overview} />
+          <ClashCard stats={overview} dateRange={dateRange} />
         </div>
         <WeeklyBarChart timeline={timeline} clashType={clashType} currentWeek={selectedWeek} />
       </div>

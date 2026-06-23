@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { normalizeFlatResults, normalizeWeekJson } from "@/lib/import";
 import { persist } from "@/lib/persist";
+import { loadDataset } from "@/lib/data";
+import { sortedWeeks } from "@/lib/compute";
+import { clashWindow, currentWeek, weekWednesday } from "@/lib/week";
 
 // Local write endpoint — unauthenticated (fine for local use; gate before any
 // public deploy).
-//   Flat:   { results: [...], weekNumber, startDate, endDate, clashType, progress? }
-//           → replaces the selected (week, clash) with the imported standings.
+//   Flat:   { results: [...], weekNumber, clashType, progress? }
+//           → canonical week dates are derived from the schedule; replaces the
+//             selected (week, clash) with the imported standings.
 //   Nested: { week, clashes } → upserts (back-compat).
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,11 +19,15 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     if (body && Array.isArray(body.results)) {
-      const { results, weekNumber, startDate, endDate, clashType, progress } = body;
+      const { results, weekNumber, clashType, progress } = body;
+      // Canonical week window (Hydra Wed→next-Wed) derived from the schedule.
+      const cur = currentWeek(sortedWeeks(await loadDataset()));
+      const wed = weekWednesday(cur.weekNumber, cur.startDate, Number(weekNumber));
+      const canonical = clashWindow(wed, "hydra");
       const payload = normalizeFlatResults(results, {
         weekNumber: Number(weekNumber),
-        startDate,
-        endDate,
+        startDate: canonical.startDate,
+        endDate: canonical.endDate,
         clashType,
         progress,
       });

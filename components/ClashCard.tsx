@@ -29,7 +29,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
-export function ClashCard({ stats }: { stats: OverviewStats }) {
+export function ClashCard({ stats, dateRange }: { stats: OverviewStats; dateRange?: string }) {
   const t = THEME[stats.clashType];
   return (
     <section className="rounded-2xl border border-border bg-panel p-5">
@@ -38,6 +38,7 @@ export function ClashCard({ stats }: { stats: OverviewStats }) {
           <t.Icon size={20} />
         </span>
         <h2 className={`text-lg font-semibold ${t.text}`}>{t.label}</h2>
+        {dateRange && <span className="ml-auto text-xs text-muted">{dateRange} UTC</span>}
       </div>
 
       <div className="mt-5 grid grid-cols-4 divide-x divide-border">

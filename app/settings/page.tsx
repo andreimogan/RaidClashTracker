@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { Database, CheckCircle2, AlertTriangle, Users, Swords } from "lucide-react";
+import { Database, CheckCircle2, AlertTriangle, Users, UsersRound, Swords } from "lucide-react";
 import { loadDataset, getDataSource } from "@/lib/data";
+import { activeMemberIds } from "@/lib/compute";
+import { CLAN_CAP } from "@/lib/constants";
 import { DATABASE_URL, isRemoteDb } from "@/lib/db";
 
 // Reflects live DB state (seeded vs demo), so render per-request.
@@ -9,7 +11,8 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const ds = await loadDataset();
   const source = await getDataSource();
-  const activeMembers = ds.members.filter((m) => m.isActive).length;
+  const currentRoster = Math.min(activeMemberIds(ds).size, CLAN_CAP);
+  const trackedMembers = ds.members.length;
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -17,12 +20,19 @@ export default async function SettingsPage() {
 
       <section className="rounded-2xl border border-border bg-panel p-5">
         <h2 className="mb-4 text-lg font-semibold">Clan</h2>
-        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-border bg-panel-2 p-4">
             <div className="flex items-center gap-2 text-muted">
-              <Users size={16} /> <span className="text-sm">Members</span>
+              <Users size={16} /> <span className="text-sm">Current Roster</span>
             </div>
-            <div className="mt-1 text-2xl font-semibold">{activeMembers} / 30</div>
+            <div className="mt-1 text-2xl font-semibold">{currentRoster} / {CLAN_CAP}</div>
+          </div>
+          <div className="rounded-xl border border-border bg-panel-2 p-4">
+            <div className="flex items-center gap-2 text-muted">
+              <UsersRound size={16} /> <span className="text-sm">Tracked Members</span>
+            </div>
+            <div className="mt-1 text-2xl font-semibold">{trackedMembers}</div>
+            <div className="text-xs text-muted">all-time, incl. former</div>
           </div>
           <div className="rounded-xl border border-border bg-panel-2 p-4">
             <div className="flex items-center gap-2 text-muted">

@@ -17,7 +17,9 @@ export function formatPct(value: number, withSign = false): string {
 }
 
 export function formatDateRange(startISO: string, endISO: string): string {
-  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  // Dates are stored as UTC calendar dates; format in UTC so they don't shift
+  // by the viewer's/server's local timezone.
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", timeZone: "UTC" };
   const start = new Date(startISO).toLocaleDateString("en-US", opts);
   const end = new Date(endISO).toLocaleDateString("en-US", opts);
   return `${start} – ${end}`;

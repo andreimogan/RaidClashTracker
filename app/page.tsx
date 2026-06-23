@@ -12,7 +12,8 @@ import { PerformanceTable } from "@/components/PerformanceTable";
 import { TimelineStrip } from "@/components/TimelineStrip";
 import { DonutSummary } from "@/components/DonutSummary";
 import { TopBar, type ExportData } from "@/components/TopBar";
-import { formatDamage, formatKeys } from "@/lib/format";
+import { formatDamage, formatDateRange, formatKeys } from "@/lib/format";
+import { clashWindow } from "@/lib/week";
 
 export default async function DashboardPage({
   searchParams,
@@ -36,6 +37,13 @@ export default async function DashboardPage({
   };
   const timeline = getTimeline(ds);
   const keyUsage = getKeyUsageSummary(ds, selectedWeek);
+
+  const weekObj = weeks.find((w) => w.weekNumber === selectedWeek);
+  const clashRange = (ct: "hydra" | "chimera") => {
+    if (!weekObj) return undefined;
+    const win = clashWindow(weekObj.startDate, ct);
+    return formatDateRange(win.startDate, win.endDate);
+  };
 
   const exportData: ExportData = {
     filename: `clash-week-${selectedWeek}.csv`,
@@ -66,8 +74,8 @@ export default async function DashboardPage({
       />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <ClashCard stats={hydra} />
-        <ClashCard stats={chimera} />
+        <ClashCard stats={hydra} dateRange={clashRange("hydra")} />
+        <ClashCard stats={chimera} dateRange={clashRange("chimera")} />
       </div>
 
       <PerformanceTable data={perf} />
