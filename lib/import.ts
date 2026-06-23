@@ -103,6 +103,66 @@ export function normalizeWeekJson(input: unknown): ImportPayload {
   return { rows, weeks, progress };
 }
 
+// ---- Flat per-player array (one clash, week chosen in the UI) ----
+// e.g. [{ player_name, damage_dealt, keys_used }] — see Database/test-week.json.
+export interface FlatResult {
+  player_name?: string;
+  damage_dealt?: string | number | null;
+  keys_used?: number | string | null;
+}
+
+export interface FlatMeta {
+  weekNumber: number;
+  startDate: string;
+  endDate: string;
+  clashType: ClashType;
+  progress?: number | null;
+}
+
+export function normalizeFlatResults(items: unknown, meta: FlatMeta): ImportPayload {
+  const errors: string[] = [];
+  if (!meta?.weekNumber || !meta.startDate || !meta.endDate) {
+    errors.push("Choose a week (number + start/end dates).");
+  }
+  if (!isClash(meta?.clashType)) errors.push('Choose a clash type ("hydra" or "chimera").');
+  if (!Array.isArray(items) || items.length === 0) {
+    errors.push("Expected a non-empty array of player results.");
+  }
+  if (errors.length) fail(errors);
+
+  const rows: NormalizedRow[] = [];
+  (items as FlatResult[]).forEach((it, i) => {
+    const player = (it?.player_name ?? "").toString().trim();
+    const keys = Number(it?.keys_used ?? 0);
+    if (!player) {
+      errors.push(`Row ${i + 1}: missing "player_name".`);
+      return;
+    }
+    if (Number.isNaN(keys) || keys < 0) {
+      errors.push(`Row ${i + 1} (${player}): invalid "keys_used".`);
+      return;
+    }
+    rows.push({
+      weekNumber: meta.weekNumber,
+      memberName: player,
+      clashType: meta.clashType,
+      keysUsed: keys,
+      totalDamage: parseDamage(it?.damage_dealt),
+    });
+  });
+  if (errors.length) fail(errors);
+
+  const weeks: WeekInfo[] = [
+    { weekNumber: meta.weekNumber, startDate: meta.startDate, endDate: meta.endDate },
+  ];
+  const progress: ProgressInfo[] =
+    meta.progress != null && !Number.isNaN(Number(meta.progress))
+      ? [{ weekNumber: meta.weekNumber, clashType: meta.clashType, progress: Number(meta.progress) }]
+      : [];
+
+  return { rows, weeks, progress };
+}
+
 // ---- CSV / Google Sheet records ----
 // Columns: week_number, start_date, end_date, player, clash_type, keys_used,
 //          total_damage [, progress]

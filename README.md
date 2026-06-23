@@ -69,26 +69,33 @@ data for that pair, so edits and row deletions in the sheet propagate. The sheet
 the source of truth.
 
 ### Option B — JSON import (upload/paste)
-Open **Import → JSON Import**, upload or paste a nested per-week JSON, preview it, and
-click **Import** (upsert). See [`data/sample-week.json`](data/sample-week.json).
-Terminal equivalent: `npm run import:json -- data/sample-week.json`.
+Open **Import → JSON Import**. Paste/upload a single clash's standings as a **flat
+array**, choose the **week** (defaults to the current clash week), the **clash**
+(Hydra/Chimera) and optional **progress %**, preview, then **Import**. Each import
+**replaces** that (week, clash), so it's the week's complete standings. See
+[`data/sample-week-flat.json`](data/sample-week-flat.json) — the same shape as the
+in-game export.
 
 ```json
-{
-  "week": { "number": 25, "startDate": "2026-06-10", "endDate": "2026-06-16" },
-  "clashes": {
-    "hydra":   { "progress": 64.0, "results": [ { "player": "[ΚΛΕΩ] Hell", "keys": 3, "damage": "16.61B" } ] },
-    "chimera": { "progress": 85.0, "results": [ { "player": "[ΚΛΕΩ] Hell", "keys": 2, "damage": 9850000000 } ] }
-  }
-}
+[
+  { "rank": 1, "player_name": "[ΚΛΕΩ] Hell", "damage_dealt": "16.61B", "keys_used": 3 },
+  { "rank": 5, "player_name": "Smash69",     "damage_dealt": null,     "keys_used": 0 }
+]
 ```
 
-### Option C — CSV file
-Same columns as the Google Sheet. Run `npm run import -- data/import.csv` (see
-[`data/sample-import.csv`](data/sample-import.csv)).
+`damage_dealt` accepts a number or `16.61B` shorthand, or `null` (benched → 0).
+Terminal equivalent (week defaults to current):
 
-`total_damage` accepts raw numbers or `16.61B` / `250M` shorthand everywhere.
-JSON and CSV imports upsert on (week, member, clash); the Sheet sync mirrors.
+```bash
+npm run import:json -- Database/test-week.json --clash hydra [--week 26 --progress 62.5]
+```
+
+> The older nested `{ week, clashes }` JSON is still accepted (upsert) by the same
+> command/endpoint for back-compat.
+
+### Option C — CSV file
+Same columns as the Google Sheet (`week_number, …, clash_type, …`). Run
+`npm run import -- data/import.csv` (see [`data/sample-import.csv`](data/sample-import.csv)).
 
 ## Sharing it later (optional)
 

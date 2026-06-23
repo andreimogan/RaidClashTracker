@@ -2,9 +2,12 @@
 // and the JSON importer. No Node/DB imports — safe in the browser too.
 
 // Parse "16.61B" / "250M" / "900K" shorthand or a raw number into a number.
-export function parseDamage(raw: string | number): number {
+// null / undefined / "" (e.g. a benched player's damage) → 0.
+export function parseDamage(raw: string | number | null | undefined): number {
+  if (raw == null) return 0;
   if (typeof raw === "number") return Math.round(raw);
   const s = raw.trim().toUpperCase().replace(/,/g, "");
+  if (!s) return 0;
   const m = s.match(/^([\d.]+)\s*([BMK]?)$/);
   if (!m) return Number(s) || 0;
   const n = parseFloat(m[1]);
