@@ -217,7 +217,7 @@ export function ImportPanel({
               className={`${fieldCls} min-w-[20rem] cursor-pointer`}
             >
               {weekOptions.map((w) => {
-                const tags = [w.isCurrent ? "current" : null, w.hasData ? "has data" : "new"].filter(Boolean);
+                const tags = [w.isCurrent ? "current" : null, w.hasData ? "has data" : "no data"].filter(Boolean);
                 return (
                   <option key={w.weekNumber} value={w.weekNumber} className="bg-panel">
                     Week {w.weekNumber} — {w.range} ({tags.join(" · ")})
