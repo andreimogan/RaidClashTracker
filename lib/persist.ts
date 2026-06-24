@@ -1,6 +1,7 @@
 // Server-only: writes a normalized import payload into the local SQLite DB.
 // Shared by the API routes (in-app import/sync) and the CLI scripts.
 import { getDb } from "./db";
+import type { Client } from "@libsql/client";
 import type { ImportPayload, NormalizedRow, ProgressInfo, WeekInfo } from "./import";
 
 export type PersistMode = "upsert" | "replace";
@@ -22,9 +23,10 @@ const resultId = (r: NormalizedRow) => `${weekId(r.weekNumber)}-${slug(r.memberN
 export async function persist(
   payload: ImportPayload,
   mode: PersistMode = "upsert",
+  client?: Client,
 ): Promise<PersistSummary> {
   const { rows, weeks, progress } = payload;
-  const db = getDb();
+  const db = client ?? getDb();
 
   const memberNames = [...new Set(rows.map((r) => r.memberName))];
   const memberStmts = memberNames.map((name) => ({

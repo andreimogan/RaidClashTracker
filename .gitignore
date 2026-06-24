@@ -34,9 +34,12 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local SQLite database (personal clan data)
+# local SQLite database (personal clan data) + active-DB pointer
 /data/clash.db
 /data/clash.db-*
+/data/clash-test.db
+/data/clash-test.db-*
+/data/active-db.json
 
 # vercel
 .vercel

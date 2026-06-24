@@ -3,10 +3,11 @@ import { loadDataset, getDataSource } from "@/lib/data";
 import { activeMemberIds, sortedWeeks } from "@/lib/compute";
 import { currentWeek } from "@/lib/week";
 import { CLAN_CAP } from "@/lib/constants";
-import { DATABASE_URL, isRemoteDb } from "@/lib/db";
+import { activeEnv, activeDbUrl, isRemoteDb, isEnvOverride } from "@/lib/db";
 import { SettingsTabs } from "@/components/SettingsTabs";
 import { ImportPanel } from "@/components/ImportPanel";
 import { DataManagement } from "@/components/DataManagement";
+import { DatabaseSwitcher } from "@/components/DatabaseSwitcher";
 
 // Reflects live DB state (seeded vs demo), so render per-request.
 export const dynamic = "force-dynamic";
@@ -14,6 +15,9 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const ds = await loadDataset();
   const source = await getDataSource();
+  const active = activeEnv();
+  const dbUrl = activeDbUrl();
+  const remote = isRemoteDb();
   const currentRoster = Math.min(activeMemberIds(ds).size, CLAN_CAP);
   const trackedMembers = ds.members.length;
 
@@ -69,11 +73,13 @@ export default async function SettingsPage() {
             <CheckCircle2 className="mt-0.5 text-hydra" size={20} />
             <div>
               <div className="font-medium text-hydra">
-                {isRemoteDb ? "Connected to remote database" : "Local database"}
+                {remote
+                  ? "Connected to remote database"
+                  : `Local database — ${active === "test" ? "Test" : "Production"}`}
               </div>
               <p className="mt-1 text-sm text-muted">
                 Reading live data from{" "}
-                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">{DATABASE_URL}</code>.
+                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">{dbUrl}</code>.
                 Use the <span className="text-text">Import data</span> tab after each clash to update it.
               </p>
             </div>
@@ -107,6 +113,8 @@ export default async function SettingsPage() {
           <li>Run <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run dev</code> whenever you want to view stats.</li>
         </ol>
       </section>
+
+      <DatabaseSwitcher active={active} envOverride={isEnvOverride} />
 
       <DataManagement />
     </div>
