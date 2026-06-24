@@ -116,7 +116,6 @@ export interface FlatMeta {
   startDate: string;
   endDate: string;
   clashType: ClashType;
-  progress?: number | null;
 }
 
 export function normalizeFlatResults(items: unknown, meta: FlatMeta): ImportPayload {
@@ -155,12 +154,9 @@ export function normalizeFlatResults(items: unknown, meta: FlatMeta): ImportPayl
   const weeks: WeekInfo[] = [
     { weekNumber: meta.weekNumber, startDate: meta.startDate, endDate: meta.endDate },
   ];
-  const progress: ProgressInfo[] =
-    meta.progress != null && !Number.isNaN(Number(meta.progress))
-      ? [{ weekNumber: meta.weekNumber, clashType: meta.clashType, progress: Number(meta.progress) }]
-      : [];
 
-  return { rows, weeks, progress };
+  // Progress is now computed from key usage (not entered on import).
+  return { rows, weeks, progress: [] };
 }
 
 // ---- CSV / Google Sheet records ----

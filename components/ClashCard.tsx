@@ -1,4 +1,4 @@
-import { Flame, Cat, Info } from "lucide-react";
+import { Flame, Cat } from "lucide-react";
 import type { OverviewStats } from "@/lib/types";
 import { formatDamage, formatKeys } from "@/lib/format";
 
@@ -61,7 +61,7 @@ export function ClashCard({ stats, dateRange }: { stats: OverviewStats; dateRang
           />
         </div>
         <span className="text-sm font-medium tabular-nums">{stats.progress.toFixed(1)}%</span>
-        <Info size={14} className="text-faint" />
+        <span className="text-xs text-muted">keys used</span>
       </div>
     </section>
   );

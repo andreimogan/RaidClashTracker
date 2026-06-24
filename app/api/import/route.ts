@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     if (body && Array.isArray(body.results)) {
-      const { results, weekNumber, clashType, progress } = body;
+      const { results, weekNumber, clashType } = body;
       // Canonical week window (Hydra Wed→next-Wed) derived from the schedule.
       const cur = currentWeek(sortedWeeks(await loadDataset()));
       const wed = weekWednesday(cur.weekNumber, cur.startDate, Number(weekNumber));
@@ -29,7 +29,6 @@ export async function POST(request: Request) {
         startDate: canonical.startDate,
         endDate: canonical.endDate,
         clashType,
-        progress,
       });
       const summary = await persist(payload, "replace");
       return NextResponse.json({ ok: true, summary });

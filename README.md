@@ -49,6 +49,11 @@ SQLite browser. To override the location, copy `.env.example` → `.env.local` a
 
 A week selector (top-right) drives the data; **Export** downloads the current view as CSV.
 
+**Metrics:** each clash card's **Progress** bar is clan **key usage** — keys used vs the
+maximum possible (`roster × max keys`; **Hydra 3, Chimera 2** keys per member), so 100%
+means everyone used all their keys. In the performance table, **Participation** is a
+member's keys used ÷ that clash's max keys (e.g. 1 of 3 Hydra keys = 33%).
+
 ## Getting weekly data in
 
 Three ways to load a week's numbers — all funnel through the same normalize +
@@ -70,8 +75,8 @@ the source of truth.
 
 ### Option B — JSON import (upload/paste)
 Open **Clan Settings → Import data → JSON Import**. Paste/upload a single clash's standings as a **flat
-array**, choose the **week** (defaults to the current clash week), the **clash**
-(Hydra/Chimera) and optional **progress %**, preview, then **Import**. Each import
+array**, choose the **week** (defaults to the current clash week) and the **clash**
+(Hydra/Chimera), preview, then **Import**. Each import
 **replaces** that (week, clash), so it's the week's complete standings. See
 [`data/sample-week-flat.json`](data/sample-week-flat.json) — the same shape as the
 in-game export.
@@ -97,7 +102,7 @@ own date range.
 Terminal equivalent (week defaults to current):
 
 ```bash
-npm run import:json -- Database/test-week.json --clash hydra [--week 26 --progress 62.5]
+npm run import:json -- Database/test-week.json --clash hydra [--week 26]
 ```
 
 > The older nested `{ week, clashes }` JSON is still accepted (upsert) by the same

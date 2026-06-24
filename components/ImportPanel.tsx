@@ -61,7 +61,6 @@ export function ImportPanel({
 
   const [weekNumber, setWeekNumber] = useState(currentWeek.weekNumber);
   const [clashType, setClashType] = useState<ClashType>("hydra");
-  const [progress, setProgress] = useState("");
 
   // Dates are derived from the clash schedule, not entered by hand:
   // `window` = the selected clash's display dates; `canonical` = the Hydra
@@ -86,7 +85,6 @@ export function ImportPanel({
         startDate: canonical.startDate,
         endDate: canonical.endDate,
         clashType,
-        progress: progress === "" ? null : Number(progress),
       });
       return {
         ok: true as const,
@@ -97,7 +95,7 @@ export function ImportPanel({
     } catch (err) {
       return { ok: false as const, error: err instanceof Error ? err.message : "Invalid JSON." };
     }
-  }, [json, weekNumber, clashType, progress, canonical.startDate, canonical.endDate]);
+  }, [json, weekNumber, clashType, canonical.startDate, canonical.endDate]);
 
   async function onFile(file: File) {
     setJson(await file.text());
@@ -117,7 +115,6 @@ export function ImportPanel({
           results: JSON.parse(json),
           weekNumber,
           clashType,
-          progress: progress === "" ? null : Number(progress),
         }),
       });
       const data = await res.json();
@@ -229,19 +226,6 @@ export function ImportPanel({
               ))}
             </div>
           </div>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted">Progress % (optional)</span>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              step={0.1}
-              value={progress}
-              onChange={(e) => setProgress(e.target.value)}
-              placeholder="62.5"
-              className={`${fieldCls} w-28`}
-            />
-          </label>
         </div>
 
         {/* derived schedule dates (read-only) */}

@@ -93,7 +93,7 @@ export default async function SettingsPage() {
         <ol className="ml-5 list-decimal space-y-1.5 text-sm text-muted">
           <li>One-time: <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:init</code> creates the local database (skip if it&apos;s already set up).</li>
           <li>After a clash ends, open the <span className="text-text">Import data</span> tab above — sync your Google Sheet, or upload/paste the clash JSON.</li>
-          <li>Pick the week (it defaults to the current clash week); the start/end dates auto-derive from the clash schedule and <span className="text-text">Progress %</span> is optional.</li>
+          <li>Pick the week (it defaults to the current clash week) and the clash; the start/end dates auto-derive from the clash schedule.</li>
           <li>Prefer the terminal? <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run sync:sheet</code>, <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import:json</code>, or <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import</code> (CSV) do the same.</li>
           <li>Run <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run dev</code> whenever you want to view stats.</li>
         </ol>

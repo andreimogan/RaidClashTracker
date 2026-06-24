@@ -1,5 +1,6 @@
 // Pure functions that turn raw clash data into the derived metrics the UI shows.
 // Kept framework-free so it works for both the Supabase and mock data paths.
+import { MAX_KEYS, maxKeysFor } from "./constants";
 import type {
   ClashMeta,
   ClashResult,
@@ -79,9 +80,9 @@ export function getOverview(
   const participants = rows.filter((r) => r.keysUsed > 0);
   const totalKeys = participants.reduce((s, r) => s + r.keysUsed, 0);
   const totalDamage = participants.reduce((s, r) => s + r.totalDamage, 0);
-  const meta = ds.meta.find(
-    (m) => m.weekId === week?.id && m.clashType === clashType,
-  );
+  // Progress = clan key usage: keys used vs every roster member's max keys.
+  // 100% means all clan members used all their keys this clash.
+  const keysPossible = rows.length * MAX_KEYS[clashType];
   return {
     clashType,
     keyUsageAvg: participants.length ? totalKeys / participants.length : 0,
@@ -91,7 +92,7 @@ export function getOverview(
     // Roster present for this week + clash (participants + benched 0-key rows),
     // not the all-time member count — the roster varies week to week.
     totalMembers: rows.length,
-    progress: meta?.progress ?? 0,
+    progress: keysPossible ? (totalKeys / keysPossible) * 100 : 0,
   };
 }
 
@@ -104,9 +105,8 @@ export function getPerformance(
   const week = weekByNumber(ds, weekNumber);
   if (!week) return [];
 
-  // The 4 most recent weeks up to and including the selected one.
-  const recentWeeks = weeks.filter((w) => w.weekNumber <= weekNumber).slice(-4);
   const priorWeeks = weeks.filter((w) => w.weekNumber < weekNumber);
+  const maxKeys = maxKeysFor(scope);
 
   const rows: PerformanceRow[] = ds.members
     .filter((m) => m.isActive)
@@ -124,12 +124,10 @@ export function getPerformance(
         ? memberWeeks.reduce((s, a) => s + a.damage, 0) / memberWeeks.length
         : 0;
 
-      // Participation across the last 4 weeks.
-      const participatedRecent = recentWeeks.filter(
-        (w) => aggregateMemberWeek(ds, member.id, w.id, scope).keys > 0,
-      ).length;
-      const participationPct = recentWeeks.length
-        ? (participatedRecent / recentWeeks.length) * 100
+      // Participation = keys used this week vs the max keys for this clash
+      // (Hydra 3, Chimera 2, Total 5). e.g. 1 Hydra key = 33.33%.
+      const participationPct = maxKeys
+        ? Math.min(100, (thisWeek.keys / maxKeys) * 100)
         : 0;
 
       // Trend: this week's dmg/key vs the average dmg/key of prior weeks.
