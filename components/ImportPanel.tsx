@@ -44,23 +44,46 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
+const RECENT_WEEKS = 12;
+
 export function ImportPanel({
   weeks,
   currentWeek,
+  existingData,
 }: {
   weeks: WeekOpt[];
   currentWeek: CurrentWeek;
+  existingData: Record<number, { hydra: number; chimera: number }>;
 }) {
-  // ---- week / clash / progress selection ----
+  // ---- week / clash selection ----
   const existingNumbers = useMemo(() => new Set(weeks.map((w) => w.weekNumber)), [weeks]);
-  const weekOptions = useMemo<(WeekOpt & { isNew: boolean })[]>(() => {
-    const opts = weeks.map((w) => ({ ...w, isNew: false }));
-    if (!existingNumbers.has(currentWeek.weekNumber)) opts.push({ ...currentWeek, isNew: true });
-    return opts.sort((a, b) => b.weekNumber - a.weekNumber);
-  }, [weeks, existingNumbers, currentWeek]);
+
+  // The current week + the last ~12 weeks, plus any already-imported weeks.
+  const weekOptions = useMemo(() => {
+    const nums = new Set<number>(existingNumbers);
+    for (let i = 0; i < RECENT_WEEKS; i++) {
+      const n = currentWeek.weekNumber - i;
+      if (n >= 1) nums.add(n);
+    }
+    return [...nums]
+      .sort((a, b) => b - a)
+      .map((n) => {
+        const win = clashWindow(weekWednesday(currentWeek.weekNumber, currentWeek.startDate, n), "hydra");
+        const counts = existingData[n];
+        return {
+          weekNumber: n,
+          range: formatDateRange(win.startDate, win.endDate),
+          isCurrent: n === currentWeek.weekNumber,
+          hasData: !!counts && counts.hydra + counts.chimera > 0,
+        };
+      });
+  }, [existingNumbers, currentWeek, existingData]);
 
   const [weekNumber, setWeekNumber] = useState(currentWeek.weekNumber);
   const [clashType, setClashType] = useState<ClashType>("hydra");
+
+  // Rows already stored for the selected (week, clash) — drives the overwrite prompt.
+  const existingCount = existingData[weekNumber]?.[clashType] ?? 0;
 
   // Dates are derived from the clash schedule, not entered by hand:
   // `window` = the selected clash's display dates; `canonical` = the Hydra
@@ -74,7 +97,11 @@ export function ImportPanel({
   const [jsonResult, setJsonResult] = useState<PersistSummary | null>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Re-arm the overwrite prompt whenever the target or payload changes.
+  useEffect(() => setConfirmOverwrite(false), [weekNumber, clashType, json]);
 
   const preview = useMemo(() => {
     if (!json.trim()) return null;
@@ -180,31 +207,24 @@ export function ImportPanel({
           . Choose the week &amp; clash below; importing <strong>replaces</strong> that week&apos;s clash.
         </p>
 
-        {/* week / clash / progress controls — dates are derived from the schedule */}
+        {/* week + clash controls — dates are derived from the schedule */}
         <div className="mb-3 flex flex-wrap items-end gap-4">
           <label className="flex flex-col gap-1">
             <span className="text-xs text-muted">Week</span>
             <select
               value={weekNumber}
               onChange={(e) => setWeekNumber(Number(e.target.value))}
-              className={`${fieldCls} cursor-pointer`}
+              className={`${fieldCls} min-w-[20rem] cursor-pointer`}
             >
-              {weekOptions.map((w) => (
-                <option key={w.weekNumber} value={w.weekNumber} className="bg-panel">
-                  Week {w.weekNumber}
-                  {w.isNew ? " (new)" : ""} — {formatDateRange(w.startDate, w.endDate)}
-                </option>
-              ))}
+              {weekOptions.map((w) => {
+                const tags = [w.isCurrent ? "current" : null, w.hasData ? "has data" : "new"].filter(Boolean);
+                return (
+                  <option key={w.weekNumber} value={w.weekNumber} className="bg-panel">
+                    Week {w.weekNumber} — {w.range} ({tags.join(" · ")})
+                  </option>
+                );
+              })}
             </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted">Week #</span>
-            <input
-              type="number"
-              value={weekNumber}
-              onChange={(e) => setWeekNumber(Number(e.target.value))}
-              className={`${fieldCls} w-24`}
-            />
           </label>
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted">Clash</span>
@@ -233,6 +253,8 @@ export function ImportPanel({
           <span className={`font-medium capitalize ${clashType === "hydra" ? "text-hydra" : "text-chimera"}`}>
             {clashType} clash
           </span>
+          <span className="text-muted">·</span>
+          <span className="text-muted">Week {weekNumber}</span>
           <span className="text-muted">·</span>
           <span className="text-text">{formatDateRange(clashDates.startDate, clashDates.endDate)} UTC</span>
         </div>
@@ -273,14 +295,45 @@ export function ImportPanel({
         )}
         {preview && !preview.ok && <div className="mt-3"><ErrorBanner message={preview.error} /></div>}
 
+        {existingCount > 0 && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-gold/30 bg-gold/5 p-3 text-sm text-gold">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+            <span>
+              Week {weekNumber} <span className="capitalize">{clashType}</span> already has{" "}
+              {existingCount} {existingCount === 1 ? "entry" : "entries"} — importing will replace them.
+            </span>
+          </div>
+        )}
+
         <div className="mt-4">
-          <button
-            onClick={importJson}
-            disabled={importing || !preview?.ok}
-            className="flex items-center gap-2 rounded-lg bg-chimera px-4 py-2 text-sm font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-40"
-          >
-            <Upload size={16} /> {importing ? "Importing..." : "Import"}
-          </button>
+          {existingCount > 0 && confirmOverwrite ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm text-muted">
+                Replace Week {weekNumber} <span className="capitalize">{clashType}</span> data?
+              </span>
+              <button
+                onClick={importJson}
+                disabled={importing}
+                className="flex items-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                <Upload size={16} /> {importing ? "Replacing..." : "Replace"}
+              </button>
+              <button
+                onClick={() => setConfirmOverwrite(false)}
+                className="rounded-lg px-3 py-2 text-sm text-muted hover:text-text"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => (existingCount > 0 ? setConfirmOverwrite(true) : importJson())}
+              disabled={importing || !preview?.ok}
+              className="flex items-center gap-2 rounded-lg bg-chimera px-4 py-2 text-sm font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-40"
+            >
+              <Upload size={16} /> {existingCount > 0 ? "Replace data" : importing ? "Importing..." : "Import"}
+            </button>
+          )}
         </div>
 
         {(jsonResult || jsonError) && (

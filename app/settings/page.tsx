@@ -20,6 +20,15 @@ export default async function SettingsPage() {
   const weeks = sortedWeeks(ds);
   const current = currentWeek(weeks);
 
+  // Per-week, per-clash row counts so the import panel can warn before overwrite.
+  const weekNumById = new Map(ds.weeks.map((w) => [w.id, w.weekNumber]));
+  const existingData: Record<number, { hydra: number; chimera: number }> = {};
+  for (const r of ds.results) {
+    const wn = weekNumById.get(r.weekId);
+    if (wn == null) continue;
+    (existingData[wn] ??= { hydra: 0, chimera: 0 })[r.clashType]++;
+  }
+
   const overview = (
     <div className="flex flex-col gap-6">
       <section className="rounded-2xl border border-border bg-panel p-5">
@@ -111,6 +120,7 @@ export default async function SettingsPage() {
         endDate: w.endDate,
       }))}
       currentWeek={current}
+      existingData={existingData}
     />
   );
 
