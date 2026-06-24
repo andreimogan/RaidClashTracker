@@ -10,8 +10,6 @@ import {
   Users,
   Settings,
 } from "lucide-react";
-import { Avatar } from "./Avatar";
-import { CLAN_CAP } from "@/lib/constants";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -22,7 +20,7 @@ const NAV = [
   { href: "/settings", label: "Clan Settings", icon: Settings },
 ];
 
-export function Sidebar({ activeCount = CLAN_CAP }: { activeCount?: number }) {
+export function Sidebar() {
   const pathname = usePathname();
 
   return (
@@ -57,36 +55,6 @@ export function Sidebar({ activeCount = CLAN_CAP }: { activeCount?: number }) {
           );
         })}
       </nav>
-
-      <div className="mt-auto flex flex-col gap-3 p-3">
-        <div className="rounded-xl border border-border bg-panel-2 p-3">
-          <div className="flex items-center gap-3">
-            <Avatar name="[ΚΛΕΩ] Hell" size={36} ring="gold" />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold">[ΚΛΕΩ] Hell</div>
-              <div className="text-xs text-muted">Lvl 13</div>
-            </div>
-          </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-muted">
-            <span>Members</span>
-            <span className="text-text">{activeCount}/{CLAN_CAP}</span>
-          </div>
-          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-gold to-amber-300"
-              style={{ width: `${(activeCount / CLAN_CAP) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-panel-2 p-3">
-          <Avatar name="Joe" size={32} ring="chimera" />
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold">Joe</div>
-            <div className="text-xs text-muted">Clan Leader</div>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 }

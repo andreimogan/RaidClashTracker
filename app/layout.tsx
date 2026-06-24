@@ -4,9 +4,6 @@ import "./globals.css";
 import Link from "next/link";
 import { FlaskConical } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
-import { loadDataset } from "@/lib/data";
-import { activeMemberIds } from "@/lib/compute";
-import { CLAN_CAP } from "@/lib/constants";
 import { activeEnv } from "@/lib/db";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -20,8 +17,6 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const ds = await loadDataset();
-  const activeCount = Math.min(activeMemberIds(ds).size, CLAN_CAP);
   const isTest = activeEnv() === "test";
 
   return (
@@ -37,7 +32,7 @@ export default async function RootLayout({
           </div>
         )}
         <div className="flex min-h-screen">
-          <Sidebar activeCount={activeCount} />
+          <Sidebar />
           <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
         </div>
       </body>
