@@ -8,7 +8,6 @@ import {
   Cat,
   CalendarRange,
   Users,
-  Upload,
   Settings,
 } from "lucide-react";
 import { Avatar } from "./Avatar";
@@ -20,7 +19,6 @@ const NAV = [
   { href: "/chimera", label: "Chimera Clash", icon: Cat },
   { href: "/timeline", label: "Timeline", icon: CalendarRange },
   { href: "/members", label: "Members", icon: Users },
-  { href: "/import", label: "Import", icon: Upload },
   { href: "/settings", label: "Clan Settings", icon: Settings },
 ];
 

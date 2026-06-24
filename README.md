@@ -6,7 +6,7 @@ participation, and week-over-week trends. Runs on your machine, only when you st
 
 - **Framework:** Next.js (App Router, TypeScript) + Tailwind CSS + Recharts
 - **Database:** local **SQLite** file (`data/clash.db`) via libSQL — no accounts, no hosting
-- **Data in:** Google Sheet sync, JSON upload/paste, or CSV — via the in-app Import page or CLI
+- **Data in:** Google Sheet sync, JSON upload/paste, or CSV — via **Clan Settings → Import data** or CLI
 - **Run:** `npm run dev` whenever you want to see the stats
 
 The app runs with **bundled demo data out of the box** — no database needed to see it.
@@ -61,7 +61,7 @@ Keep a Google Sheet as the canonical record and pull it in with a button.
    `week_number, start_date, end_date, player, clash_type, keys_used, total_damage[, progress]`
 2. Share it: **File → Share → Publish to web** (CSV), or set link sharing to
    "Anyone with the link can view".
-3. In the app, open **Import → Google Sheet Sync**, paste the sheet URL, click **Sync**.
+3. In the app, open **Clan Settings → Import data → Google Sheet Sync**, paste the sheet URL, click **Sync**.
    (Or from the terminal: `npm run sync:sheet -- "<sheet-url>"`.)
 
 Sync is a **mirror**: each `(week, clash)` present in the sheet *replaces* the app's
@@ -69,7 +69,7 @@ data for that pair, so edits and row deletions in the sheet propagate. The sheet
 the source of truth.
 
 ### Option B — JSON import (upload/paste)
-Open **Import → JSON Import**. Paste/upload a single clash's standings as a **flat
+Open **Clan Settings → Import data → JSON Import**. Paste/upload a single clash's standings as a **flat
 array**, choose the **week** (defaults to the current clash week), the **clash**
 (Hydra/Chimera) and optional **progress %**, preview, then **Import**. Each import
 **replaces** that (week, clash), so it's the week's complete standings. See
@@ -123,7 +123,7 @@ No application code changes — only the connection string.
 ## Project layout
 
 ```
-app/            routes (dashboard, hydra, chimera, timeline, members, import, settings)
+app/            routes (dashboard, hydra, chimera, timeline, members, settings[+import tab])
 app/api/        import (JSON) + sheet-sync (Google Sheet) write endpoints
 components/     UI (Sidebar, ClashCard, PerformanceTable, TimelineStrip, DonutSummary, ...)
 lib/            types, formatting, compute, db client, data loader, parse/import/persist, sheets, mock seed

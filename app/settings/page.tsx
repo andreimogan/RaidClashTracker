@@ -1,9 +1,11 @@
-import Link from "next/link";
 import { Database, CheckCircle2, AlertTriangle, Users, UsersRound, Swords } from "lucide-react";
 import { loadDataset, getDataSource } from "@/lib/data";
-import { activeMemberIds } from "@/lib/compute";
+import { activeMemberIds, sortedWeeks } from "@/lib/compute";
+import { currentWeek } from "@/lib/week";
 import { CLAN_CAP } from "@/lib/constants";
 import { DATABASE_URL, isRemoteDb } from "@/lib/db";
+import { SettingsTabs } from "@/components/SettingsTabs";
+import { ImportPanel } from "@/components/ImportPanel";
 
 // Reflects live DB state (seeded vs demo), so render per-request.
 export const dynamic = "force-dynamic";
@@ -14,10 +16,11 @@ export default async function SettingsPage() {
   const currentRoster = Math.min(activeMemberIds(ds).size, CLAN_CAP);
   const trackedMembers = ds.members.length;
 
-  return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Clan Settings</h1>
+  const weeks = sortedWeeks(ds);
+  const current = currentWeek(weeks);
 
+  const overview = (
+    <div className="flex flex-col gap-6">
       <section className="rounded-2xl border border-border bg-panel p-5">
         <h2 className="mb-4 text-lg font-semibold">Clan</h2>
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -61,10 +64,7 @@ export default async function SettingsPage() {
               <p className="mt-1 text-sm text-muted">
                 Reading live data from{" "}
                 <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">{DATABASE_URL}</code>.
-                Run{" "}
-                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import</code> or{" "}
-                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run sync</code>{" "}
-                after each clash to update it.
+                Use the <span className="text-text">Import data</span> tab after each clash to update it.
               </p>
             </div>
           </div>
@@ -90,12 +90,31 @@ export default async function SettingsPage() {
       <section className="rounded-2xl border border-border bg-panel p-5">
         <h2 className="mb-2 text-lg font-semibold">Updating the Data</h2>
         <ol className="ml-5 list-decimal space-y-1.5 text-sm text-muted">
-          <li>One-time: <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:init</code> creates the local database.</li>
-          <li>After a clash ends, add the week&apos;s numbers via the <Link href="/import" className="text-text underline underline-offset-2 hover:text-hydra">Import</Link> page — sync a Google Sheet, or upload/paste JSON.</li>
+          <li>One-time: <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:init</code> creates the local database (skip if it&apos;s already set up).</li>
+          <li>After a clash ends, open the <span className="text-text">Import data</span> tab above — sync your Google Sheet, or upload/paste the clash JSON.</li>
+          <li>Pick the week (it defaults to the current clash week); the start/end dates auto-derive from the clash schedule and <span className="text-text">Progress %</span> is optional.</li>
           <li>Prefer the terminal? <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run sync:sheet</code>, <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import:json</code>, or <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import</code> (CSV) do the same.</li>
-          <li>Start the app with <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run dev</code> whenever you want to view stats.</li>
+          <li>Run <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run dev</code> whenever you want to view stats.</li>
         </ol>
       </section>
+    </div>
+  );
+
+  const importPanel = (
+    <ImportPanel
+      weeks={weeks.map((w) => ({
+        weekNumber: w.weekNumber,
+        startDate: w.startDate,
+        endDate: w.endDate,
+      }))}
+      currentWeek={current}
+    />
+  );
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <h1 className="text-2xl font-semibold tracking-tight">Clan Settings</h1>
+      <SettingsTabs overview={overview} importPanel={importPanel} />
     </div>
   );
 }

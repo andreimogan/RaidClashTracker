@@ -166,9 +166,7 @@ export function ImportPanel({
     "rounded-lg border border-border bg-panel-2 px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-chimera/50";
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Import Data</h1>
-
+    <div className="flex flex-col gap-6">
       {/* JSON import */}
       <section className="rounded-2xl border border-border bg-panel p-5">
         <div className="mb-1 flex items-center gap-2.5">
