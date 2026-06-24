@@ -40,8 +40,8 @@ function wipeStatements(): InStatement[] {
   ];
 }
 
-export async function resetDatabase(): Promise<void> {
-  await getDb().batch(wipeStatements(), "write");
+export async function resetDatabase(client?: Client): Promise<void> {
+  await (client ?? getDb()).batch(wipeStatements(), "write");
 }
 
 type Row = Record<string, unknown>;

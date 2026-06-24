@@ -116,7 +116,7 @@ export default async function SettingsPage() {
 
       <DatabaseSwitcher active={active} envOverride={isEnvOverride} />
 
-      <DataManagement />
+      <DataManagement active={active} />
     </div>
   );
 
