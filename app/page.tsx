@@ -1,6 +1,6 @@
 import { loadDataset } from "@/lib/data";
 import {
-  getAllWeeksPerformance,
+  getAllWeeksTotals,
   getKeyUsageSummary,
   getOverview,
   getPerformance,
@@ -39,8 +39,8 @@ export default async function DashboardPage({
   const perf = {
     hydra: getPerformance(ds, selectedWeek, "hydra"),
     chimera: getPerformance(ds, selectedWeek, "chimera"),
-    total: getAllWeeksPerformance(ds),
   };
+  const totals = getAllWeeksTotals(ds);
   // Export keeps the selected week's combined standings (independent of tab).
   const weekTotal = getPerformance(ds, selectedWeek, "total");
   const timeline = getTimeline(ds);
@@ -107,7 +107,7 @@ export default async function DashboardPage({
         <ClashCard stats={chimera} dateRange={clashRange("chimera")} />
       </div>
 
-      <PerformanceTable data={perf} weekLabel={weekLabel} allWeeksLabel={allWeeksLabel} />
+      <PerformanceTable data={perf} totals={totals} weekLabel={weekLabel} allWeeksLabel={allWeeksLabel} />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="xl:col-span-2">

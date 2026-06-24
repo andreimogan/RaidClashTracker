@@ -95,6 +95,14 @@ export interface MemberClashStat {
   trendPct: number; // from the member's latest present week
 }
 
+// One row of the Clan Performance "Total (All Weeks)" table: a member's
+// all-weeks aggregate split per clash.
+export interface MemberTotalsRow {
+  member: Member;
+  hydra: MemberClashStat;
+  chimera: MemberClashStat;
+}
+
 export interface MemberProfile {
   member: Member;
   isActive: boolean;

@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import type { PerformanceRow } from "@/lib/types";
+import type { ClashType, MemberTotalsRow, PerformanceRow } from "@/lib/types";
 import type { PerfScope } from "@/lib/compute";
 import { formatDamage, formatKeys } from "@/lib/format";
 import { Avatar } from "./Avatar";
 import { TrendBadge } from "./TrendBadge";
+import { TotalPerformanceTable } from "./TotalPerformanceTable";
 
 type SortKey =
   | "keysThisWeek"
@@ -60,10 +61,12 @@ function HeaderCell({
 
 export function PerformanceTable({
   data,
+  totals,
   weekLabel,
   allWeeksLabel,
 }: {
-  data: Record<PerfScope, PerformanceRow[]>;
+  data: Record<ClashType, PerformanceRow[]>;
+  totals: MemberTotalsRow[];
   weekLabel: string;
   allWeeksLabel: string;
 }) {
@@ -83,22 +86,29 @@ export function PerformanceTable({
     }
   };
 
+  // Weekly tabs (Hydra/Chimera): filter by name + sort.
   const rows = useMemo(() => {
-    const filtered = data[scope].filter((r) => {
-      if (!r.member.inGameName.toLowerCase().includes(query.toLowerCase())) return false;
-      // Active/Former filter only applies on the Total (All Weeks) tab.
-      if (scope === "total" && memberFilter !== "all") {
-        return memberFilter === "active" ? r.member.isActive : !r.member.isActive;
-      }
-      return true;
-    });
-    const sorted = [...filtered].sort((a, b) => {
+    if (isTotal) return [];
+    const list = data[scope as ClashType] ?? [];
+    const filtered = list.filter((r) =>
+      r.member.inGameName.toLowerCase().includes(query.toLowerCase()),
+    );
+    return [...filtered].sort((a, b) => {
       const av = a[sortKey];
       const bv = b[sortKey];
       return dir === "desc" ? bv - av : av - bv;
     });
-    return sorted;
-  }, [data, scope, query, sortKey, dir, memberFilter]);
+  }, [data, scope, isTotal, query, sortKey, dir]);
+
+  // Total (All Weeks) tab: filter by name + active/former (sort lives in the table).
+  const totalRows = useMemo(() => {
+    return totals.filter((r) => {
+      if (!r.member.inGameName.toLowerCase().includes(query.toLowerCase())) return false;
+      if (memberFilter === "active") return r.member.isActive;
+      if (memberFilter === "former") return !r.member.isActive;
+      return true;
+    });
+  }, [totals, query, memberFilter]);
 
   const participationColor = (pct: number) =>
     pct >= 90 ? "text-up" : pct >= 60 ? "text-muted" : "text-down";
@@ -154,15 +164,18 @@ export function PerformanceTable({
         )}
       </div>
 
+      {isTotal ? (
+        <TotalPerformanceTable rows={totalRows} emptyQuery={query} />
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] text-sm">
           <thead className="text-left text-xs text-muted">
             <tr className="border-b border-border">
               <th className="px-3 py-2 pl-5 font-medium">#</th>
               <th className="px-3 py-2 font-medium">Player</th>
-              <HeaderCell label={isTotal ? "Keys (Total)" : "Keys (Week)"} sortKey="keysThisWeek" active={sortKey === "keysThisWeek"} dir={dir} onSort={onSort} />
+              <HeaderCell label="Keys (Week)" sortKey="keysThisWeek" active={sortKey === "keysThisWeek"} dir={dir} onSort={onSort} />
               <HeaderCell label="Keys (Avg)" sortKey="keysAverage" active={sortKey === "keysAverage"} dir={dir} onSort={onSort} />
-              <HeaderCell label={isTotal ? "Damage (Total)" : "Damage (Week)"} sortKey="damageThisWeek" active={sortKey === "damageThisWeek"} dir={dir} onSort={onSort} />
+              <HeaderCell label="Damage (Week)" sortKey="damageThisWeek" active={sortKey === "damageThisWeek"} dir={dir} onSort={onSort} />
               <HeaderCell label="Damage (Avg)" sortKey="damageAverage" active={sortKey === "damageAverage"} dir={dir} onSort={onSort} />
               <HeaderCell label="Avg Dmg / Key" sortKey="avgDamagePerKey" active={sortKey === "avgDamagePerKey"} dir={dir} onSort={onSort} />
               <HeaderCell label="Participation" sortKey="participationPct" active={sortKey === "participationPct"} dir={dir} onSort={onSort} />
@@ -210,6 +223,7 @@ export function PerformanceTable({
           </tbody>
         </table>
       </div>
+      )}
     </section>
   );
 }
