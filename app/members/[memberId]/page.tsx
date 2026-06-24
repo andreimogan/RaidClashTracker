@@ -65,8 +65,17 @@ export default async function MemberDetailPage({
   params: Promise<{ memberId: string }>;
 }) {
   const { memberId } = await params;
+  // Next.js hands the route segment percent-encoded; member ids contain Unicode
+  // letters (e.g. "m-κλεω-hell"), so decode before lookup. Decode is idempotent
+  // here (ids have no literal "%"); guard against a malformed hand-typed URL.
+  let id = memberId;
+  try {
+    id = decodeURIComponent(memberId);
+  } catch {
+    /* malformed %-sequence → keep raw, lookup will 404 */
+  }
   const ds = await loadDataset();
-  const profile = getMemberProfile(ds, memberId);
+  const profile = getMemberProfile(ds, id);
   if (!profile) notFound();
 
   const { member, isActive, firstWeek, lastWeek, weeksPresent, weeksActive, bestWeek, total } =

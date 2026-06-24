@@ -94,7 +94,7 @@ export default async function MembersPage({
                     <div className="flex items-center gap-3">
                       <Avatar name={s.member.inGameName} size={32} badge={s.member.heroLevel} />
                       <Link
-                        href={`/members/${s.member.id}`}
+                        href={`/members/${encodeURIComponent(s.member.id)}`}
                         className={`font-medium hover:text-text hover:underline ${s.isActive ? "" : "text-muted"}`}
                       >
                         {s.member.inGameName}
