@@ -34,7 +34,7 @@ export function SettingsTabs({
         ))}
       </div>
 
-      {tab === "overview" ? overview : importPanel}
+      <div>{tab === "overview" ? overview : importPanel}</div>
     </div>
   );
 }
