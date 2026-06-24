@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { FileJson, Sheet, Upload, RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FileJson, Sheet, Upload, RefreshCw, CheckCircle2, AlertTriangle, Database, FlaskConical } from "lucide-react";
 import { normalizeFlatResults, type ClashType } from "@/lib/import";
 import { formatDamage, formatDateRange } from "@/lib/format";
 import { clashWindow, weekWednesday, type CurrentWeek } from "@/lib/week";
 import type { PersistSummary } from "@/lib/persist";
+import type { DbEnv } from "@/lib/db";
 
 type WeekOpt = { weekNumber: number; startDate: string; endDate: string };
 
@@ -50,11 +52,35 @@ export function ImportPanel({
   weeks,
   currentWeek,
   existingData,
+  active,
+  envOverride,
 }: {
   weeks: WeekOpt[];
   currentWeek: CurrentWeek;
   existingData: Record<number, { hydra: number; chimera: number }>;
+  active: DbEnv;
+  envOverride: boolean;
 }) {
+  const router = useRouter();
+
+  // ---- import destination (active database) ----
+  const [switching, setSwitching] = useState<DbEnv | null>(null);
+  async function switchTo(env: DbEnv) {
+    if (env === active || switching || envOverride) return;
+    setSwitching(env);
+    try {
+      const res = await fetch("/api/database", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: env }),
+      });
+      const data = await res.json();
+      if (data.ok) router.refresh();
+    } finally {
+      setSwitching(null);
+    }
+  }
+
   // ---- week / clash selection ----
   const existingNumbers = useMemo(() => new Set(weeks.map((w) => w.weekNumber)), [weeks]);
 
@@ -189,8 +215,53 @@ export function ImportPanel({
   const fieldCls =
     "rounded-lg border border-border bg-panel-2 px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-chimera/50";
 
+  const isTest = active === "test";
+  const DEST: { key: DbEnv; label: string }[] = [
+    { key: "production", label: "Production" },
+    { key: "test", label: "Test" },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Destination database — imports write to the active DB */}
+      <div
+        className={`flex flex-wrap items-center gap-3 rounded-2xl border p-4 ${
+          isTest ? "border-gold/30 bg-gold/5" : "border-border bg-panel"
+        }`}
+      >
+        {isTest ? <FlaskConical size={20} className="text-gold" /> : <Database size={20} className="text-muted" />}
+        <div className="min-w-0">
+          <div className="font-medium">
+            Importing into: <span className={isTest ? "text-gold" : "text-text"}>{isTest ? "Test" : "Production"}</span>
+          </div>
+          <div className="text-xs text-muted">
+            JSON import and Google Sheet sync both write to the active database.
+          </div>
+        </div>
+        {envOverride ? (
+          <span className="ml-auto text-xs text-faint">Pinned via DATABASE_URL.</span>
+        ) : (
+          <div className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-panel-2 p-1">
+            {DEST.map((d) => {
+              const on = d.key === active;
+              const activeCls = d.key === "test" ? "bg-panel text-gold" : "bg-panel text-hydra";
+              return (
+                <button
+                  key={d.key}
+                  onClick={() => switchTo(d.key)}
+                  disabled={on || !!switching}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    on ? activeCls : "text-muted hover:text-text"
+                  } disabled:cursor-default`}
+                >
+                  {switching === d.key ? "Switching…" : d.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* JSON import */}
       <section className="rounded-2xl border border-border bg-panel p-5">
         <div className="mb-1 flex items-center gap-2.5">

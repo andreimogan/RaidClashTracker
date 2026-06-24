@@ -129,6 +129,8 @@ export default async function SettingsPage() {
       }))}
       currentWeek={current}
       existingData={existingData}
+      active={active}
+      envOverride={isEnvOverride}
     />
   );
 
