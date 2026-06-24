@@ -109,7 +109,8 @@ export function getPerformance(
   const week = weekByNumber(ds, weekNumber);
   if (!week) return [];
 
-  const priorWeeks = weeks.filter((w) => w.weekNumber < weekNumber);
+  const weekIdx = weeks.findIndex((w) => w.weekNumber === weekNumber);
+  const prevWeek = weekIdx > 0 ? weeks[weekIdx - 1] : undefined;
   const maxKeys = maxKeysFor(scope);
 
   // Show every member who has an uploaded row for this week + scope — including
@@ -144,16 +145,14 @@ export function getPerformance(
         ? Math.min(100, (thisWeek.keys / maxKeys) * 100)
         : 0;
 
-      // Trend: this week's dmg/key vs the average dmg/key of prior weeks.
+      // Trend: this week's dmg/key vs the immediately previous week's dmg/key.
       const thisPerKey = thisWeek.keys ? thisWeek.damage / thisWeek.keys : 0;
-      const priorAgg = priorWeeks
-        .map((w) => aggregateMemberWeek(ds, member.id, w.id, scope))
-        .filter((a) => a.keys > 0);
-      const priorPerKey = priorAgg.length
-        ? priorAgg.reduce((s, a) => s + a.damage / a.keys, 0) / priorAgg.length
-        : 0;
+      const prev = prevWeek
+        ? aggregateMemberWeek(ds, member.id, prevWeek.id, scope)
+        : { keys: 0, damage: 0 };
+      const prevPerKey = prev.keys ? prev.damage / prev.keys : 0;
       const trendPct =
-        priorPerKey > 0 ? ((thisPerKey - priorPerKey) / priorPerKey) * 100 : 0;
+        prevPerKey > 0 ? ((thisPerKey - prevPerKey) / prevPerKey) * 100 : 0;
 
       return {
         rank: 0,
