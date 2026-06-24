@@ -11,6 +11,8 @@ import { ClashCard } from "@/components/ClashCard";
 import { PerformanceTable } from "@/components/PerformanceTable";
 import { TimelineStrip } from "@/components/TimelineStrip";
 import { DonutSummary } from "@/components/DonutSummary";
+import Link from "next/link";
+import { Inbox } from "lucide-react";
 import { TopBar, type ExportData } from "@/components/TopBar";
 import { formatDamage, formatDateRange, formatKeys } from "@/lib/format";
 import { clashWindow } from "@/lib/week";
@@ -72,6 +74,19 @@ export default async function DashboardPage({
         currentWeek={selectedWeek}
         exportData={exportData}
       />
+
+      {weeks.length === 0 && (
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-panel p-5 text-sm text-muted">
+          <Inbox size={20} className="text-gold" />
+          <span>
+            No clash data yet — add a week from{" "}
+            <Link href="/settings" className="text-text underline underline-offset-2 hover:text-gold">
+              Clan Settings → Import data
+            </Link>
+            .
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <ClashCard stats={hydra} dateRange={clashRange("hydra")} />

@@ -6,6 +6,7 @@ import { CLAN_CAP } from "@/lib/constants";
 import { DATABASE_URL, isRemoteDb } from "@/lib/db";
 import { SettingsTabs } from "@/components/SettingsTabs";
 import { ImportPanel } from "@/components/ImportPanel";
+import { DataManagement } from "@/components/DataManagement";
 
 // Reflects live DB state (seeded vs demo), so render per-request.
 export const dynamic = "force-dynamic";
@@ -97,6 +98,8 @@ export default async function SettingsPage() {
           <li>Run <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run dev</code> whenever you want to view stats.</li>
         </ol>
       </section>
+
+      <DataManagement />
     </div>
   );
 

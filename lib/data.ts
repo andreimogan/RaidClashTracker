@@ -22,9 +22,9 @@ async function queryDb(): Promise<Dataset | null> {
       db.execute("select * from clash_meta"),
     ]);
 
-    // Not seeded yet → let the caller fall back to demo data.
-    if (!members.rows.length || !weeks.rows.length) return null;
-
+    // Tables exist → return what's there, even if empty (e.g. after a reset).
+    // Only a query error (tables missing, before `npm run db:init`) falls back
+    // to the bundled demo data — see the catch below.
     return {
       members: members.rows.map(toMember),
       weeks: weeks.rows.map(toWeek),

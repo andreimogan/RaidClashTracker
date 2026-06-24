@@ -107,6 +107,16 @@ npm run import:json -- Database/test-week.json --clash hydra [--week 26 --progre
 Same columns as the Google Sheet (`week_number, …, clash_type, …`). Run
 `npm run import -- data/import.csv` (see [`data/sample-import.csv`](data/sample-import.csv)).
 
+## Backup, restore & reset
+
+In **Clan Settings → Overview → Data Management**:
+
+- **Export backup** downloads all current data as `clash-backup-<date>.json`.
+- **Restore from backup** uploads that file and **replaces** all current data.
+- **Reset database** (danger zone, type `RESET` to confirm) wipes everything to an
+  empty state. (A brand-new, never-initialized DB still shows the bundled demo
+  data; a reset leaves the app genuinely empty until you import again.)
+
 ## Sharing it later (optional)
 
 Everything is local by default, but the storage layer is deployable without a
