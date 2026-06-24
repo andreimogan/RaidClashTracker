@@ -32,6 +32,11 @@ body {
   height: 100%;
 }
 
+/* Global text-size knob: scales all rem-based (text-*) sizing proportionally. */
+html {
+  font-size: 75%;
+}
+
 body {
   color: var(--color-text);
   font-family: var(--font-sans);
