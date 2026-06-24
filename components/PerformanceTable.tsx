@@ -137,6 +137,11 @@ export function PerformanceTable({ data }: { data: Record<PerfScope, Performance
                   <div className="flex items-center gap-3">
                     <Avatar name={r.member.inGameName} size={32} badge={r.member.heroLevel} />
                     <span className="font-medium">{r.member.inGameName}</span>
+                    {!r.member.isActive && (
+                      <span className="rounded-full border border-border bg-panel-2 px-2 py-0.5 text-xs font-medium text-faint">
+                        Former
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="px-3 py-2.5 tabular-nums">{formatKeys(r.keysThisWeek)}</td>

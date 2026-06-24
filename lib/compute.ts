@@ -108,9 +108,19 @@ export function getPerformance(
   const priorWeeks = weeks.filter((w) => w.weekNumber < weekNumber);
   const maxKeys = maxKeysFor(scope);
 
-  const rows: PerformanceRow[] = ds.members
-    .filter((m) => m.isActive)
-    .map((member) => {
+  // Show every member who has an uploaded row for this week + scope — including
+  // benched (0-key) rows and former members no longer in the clan. "Former" is
+  // derived from the latest week's roster (same notion as the Members page), not
+  // the DB is_active column.
+  const activeIds = activeMemberIds(ds);
+  const memberById = new Map(ds.members.map((m) => [m.id, m]));
+  const present = [...new Set(resultsFor(ds, week.id, scope).map((r) => r.memberId))];
+
+  const rows: PerformanceRow[] = present
+    .map((id) => memberById.get(id))
+    .filter((m): m is Member => Boolean(m))
+    .map((m) => {
+      const member = { ...m, isActive: activeIds.has(m.id) };
       const thisWeek = aggregateMemberWeek(ds, member.id, week.id, scope);
 
       // Member averages across every week they have an entry for.
@@ -152,9 +162,7 @@ export function getPerformance(
         participationPct,
         trendPct,
       };
-    })
-    // Only show members who have at least appeared in the data.
-    .filter((r) => r.keysThisWeek > 0 || r.damageAverage > 0);
+    });
 
   rows.sort((a, b) => b.damageThisWeek - a.damageThisWeek);
   rows.forEach((r, i) => (r.rank = i + 1));
