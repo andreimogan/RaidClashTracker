@@ -1,5 +1,6 @@
 import { loadDataset } from "@/lib/data";
 import {
+  getAllWeeksPerformance,
   getKeyUsageSummary,
   getOverview,
   getPerformance,
@@ -38,10 +39,19 @@ export default async function DashboardPage({
   const perf = {
     hydra: getPerformance(ds, selectedWeek, "hydra"),
     chimera: getPerformance(ds, selectedWeek, "chimera"),
-    total: getPerformance(ds, selectedWeek, "total"),
+    total: getAllWeeksPerformance(ds),
   };
+  // Export keeps the selected week's combined standings (independent of tab).
+  const weekTotal = getPerformance(ds, selectedWeek, "total");
   const timeline = getTimeline(ds);
   const keyUsage = getKeyUsageSummary(ds, selectedWeek);
+
+  const weekLabel = weekRanges[selectedWeek]
+    ? `Week ${selectedWeek} (${weekRanges[selectedWeek]})`
+    : `Week ${selectedWeek}`;
+  const allWeeksLabel = weeks.length
+    ? formatDateRange(weeks[0].startDate, weeks[weeks.length - 1].endDate)
+    : "";
 
   const weekObj = weeks.find((w) => w.weekNumber === selectedWeek);
   const clashRange = (ct: "hydra" | "chimera") => {
@@ -56,7 +66,7 @@ export default async function DashboardPage({
       "Rank", "Player", "Keys (Week)", "Keys (Avg)",
       "Damage (Week)", "Damage (Avg)", "Avg Dmg/Key", "Participation %", "Trend %",
     ],
-    rows: perf.total.map((r, i) => [
+    rows: weekTotal.map((r, i) => [
       i + 1,
       r.member.inGameName,
       formatKeys(r.keysThisWeek),
@@ -97,7 +107,7 @@ export default async function DashboardPage({
         <ClashCard stats={chimera} dateRange={clashRange("chimera")} />
       </div>
 
-      <PerformanceTable data={perf} />
+      <PerformanceTable data={perf} weekLabel={weekLabel} allWeeksLabel={allWeeksLabel} />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="xl:col-span-2">

@@ -20,7 +20,14 @@ type SortKey =
 const TABS: { key: PerfScope; label: string; accent: string }[] = [
   { key: "hydra", label: "Hydra Clash", accent: "text-hydra" },
   { key: "chimera", label: "Chimera Clash", accent: "text-chimera" },
-  { key: "total", label: "Total", accent: "text-text" },
+  { key: "total", label: "Total (All Weeks)", accent: "text-text" },
+];
+
+type MemberFilter = "all" | "active" | "former";
+const MEMBER_FILTERS: { key: MemberFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "former", label: "Former" },
 ];
 
 function HeaderCell({
@@ -51,11 +58,22 @@ function HeaderCell({
   );
 }
 
-export function PerformanceTable({ data }: { data: Record<PerfScope, PerformanceRow[]> }) {
+export function PerformanceTable({
+  data,
+  weekLabel,
+  allWeeksLabel,
+}: {
+  data: Record<PerfScope, PerformanceRow[]>;
+  weekLabel: string;
+  allWeeksLabel: string;
+}) {
   const [scope, setScope] = useState<PerfScope>("hydra");
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("damageThisWeek");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
+  const [memberFilter, setMemberFilter] = useState<MemberFilter>("all");
+
+  const isTotal = scope === "total";
 
   const onSort = (k: SortKey) => {
     if (k === sortKey) setDir((d) => (d === "desc" ? "asc" : "desc"));
@@ -66,16 +84,21 @@ export function PerformanceTable({ data }: { data: Record<PerfScope, Performance
   };
 
   const rows = useMemo(() => {
-    const filtered = data[scope].filter((r) =>
-      r.member.inGameName.toLowerCase().includes(query.toLowerCase()),
-    );
+    const filtered = data[scope].filter((r) => {
+      if (!r.member.inGameName.toLowerCase().includes(query.toLowerCase())) return false;
+      // Active/Former filter only applies on the Total (All Weeks) tab.
+      if (scope === "total" && memberFilter !== "all") {
+        return memberFilter === "active" ? r.member.isActive : !r.member.isActive;
+      }
+      return true;
+    });
     const sorted = [...filtered].sort((a, b) => {
       const av = a[sortKey];
       const bv = b[sortKey];
       return dir === "desc" ? bv - av : av - bv;
     });
     return sorted;
-  }, [data, scope, query, sortKey, dir]);
+  }, [data, scope, query, sortKey, dir, memberFilter]);
 
   const participationColor = (pct: number) =>
     pct >= 90 ? "text-up" : pct >= 60 ? "text-muted" : "text-down";
@@ -83,7 +106,12 @@ export function PerformanceTable({ data }: { data: Record<PerfScope, Performance
   return (
     <section className="rounded-2xl border border-border bg-panel">
       <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
-        <h2 className="text-lg font-semibold">Clan Performance</h2>
+        <div>
+          <h2 className="text-lg font-semibold">Clan Performance</h2>
+          <p className="mt-0.5 text-sm text-muted">
+            {isTotal ? `All Weeks · ${allWeeksLabel}` : `Weekly · ${weekLabel}`}
+          </p>
+        </div>
         <div className="flex items-center gap-1 rounded-lg border border-border bg-panel-2 p-1">
           {TABS.map((t) => (
             <button
@@ -99,7 +127,7 @@ export function PerformanceTable({ data }: { data: Record<PerfScope, Performance
         </div>
       </div>
 
-      <div className="px-5 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-3">
         <div className="flex w-72 items-center gap-2 rounded-lg border border-border bg-panel-2 px-3 py-2">
           <Search size={15} className="text-muted" />
           <input
@@ -109,6 +137,21 @@ export function PerformanceTable({ data }: { data: Record<PerfScope, Performance
             className="w-full bg-transparent text-sm outline-none placeholder:text-faint"
           />
         </div>
+        {isTotal && (
+          <div className="flex items-center gap-1 rounded-lg border border-border bg-panel-2 p-1">
+            {MEMBER_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setMemberFilter(f.key)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  memberFilter === f.key ? "bg-panel text-text" : "text-muted hover:text-text"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="overflow-x-auto">
@@ -117,9 +160,9 @@ export function PerformanceTable({ data }: { data: Record<PerfScope, Performance
             <tr className="border-b border-border">
               <th className="px-3 py-2 pl-5 font-medium">#</th>
               <th className="px-3 py-2 font-medium">Player</th>
-              <HeaderCell label="Keys (Week)" sortKey="keysThisWeek" active={sortKey === "keysThisWeek"} dir={dir} onSort={onSort} />
+              <HeaderCell label={isTotal ? "Keys (Total)" : "Keys (Week)"} sortKey="keysThisWeek" active={sortKey === "keysThisWeek"} dir={dir} onSort={onSort} />
               <HeaderCell label="Keys (Avg)" sortKey="keysAverage" active={sortKey === "keysAverage"} dir={dir} onSort={onSort} />
-              <HeaderCell label="Damage (Week)" sortKey="damageThisWeek" active={sortKey === "damageThisWeek"} dir={dir} onSort={onSort} />
+              <HeaderCell label={isTotal ? "Damage (Total)" : "Damage (Week)"} sortKey="damageThisWeek" active={sortKey === "damageThisWeek"} dir={dir} onSort={onSort} />
               <HeaderCell label="Damage (Avg)" sortKey="damageAverage" active={sortKey === "damageAverage"} dir={dir} onSort={onSort} />
               <HeaderCell label="Avg Dmg / Key" sortKey="avgDamagePerKey" active={sortKey === "avgDamagePerKey"} dir={dir} onSort={onSort} />
               <HeaderCell label="Participation" sortKey="participationPct" active={sortKey === "participationPct"} dir={dir} onSort={onSort} />

@@ -290,3 +290,39 @@ export function getMemberProfile(ds: Dataset, memberId: string): MemberProfile |
     chimera: memberClashStat(ds, memberId, presentWeeks, "chimera"),
   };
 }
+
+// All-weeks aggregate per member (both clashes), across every ingested week —
+// includes former members. Drives the Clan Performance "Total (All Weeks)" tab.
+// The per-week "this week" fields are repurposed as all-weeks totals (the table
+// relabels them "Keys (Total)" / "Damage (Total)").
+export function getAllWeeksPerformance(ds: Dataset): PerformanceRow[] {
+  const activeIds = activeMemberIds(ds);
+  const weeks = sortedWeeks(ds);
+
+  const rows: PerformanceRow[] = ds.members
+    .map((member) => {
+      const presentWeekIds = new Set(
+        ds.results.filter((r) => r.memberId === member.id).map((r) => r.weekId),
+      );
+      const presentWeeks = weeks.filter((w) => presentWeekIds.has(w.id));
+      if (!presentWeeks.length) return null;
+
+      const stat = memberClashStat(ds, member.id, presentWeeks, "total");
+      return {
+        rank: 0,
+        member: { ...member, isActive: activeIds.has(member.id) },
+        keysThisWeek: stat.totalKeys,
+        keysAverage: stat.avgKeys,
+        damageThisWeek: stat.totalDamage,
+        damageAverage: stat.weeksPresent ? stat.totalDamage / stat.weeksPresent : 0,
+        avgDamagePerKey: stat.avgDamagePerKey,
+        participationPct: stat.participationPct,
+        trendPct: stat.trendPct,
+      } satisfies PerformanceRow;
+    })
+    .filter((r): r is PerformanceRow => r !== null);
+
+  rows.sort((a, b) => b.damageThisWeek - a.damageThisWeek);
+  rows.forEach((r, i) => (r.rank = i + 1));
+  return rows;
+}
