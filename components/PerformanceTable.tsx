@@ -7,6 +7,7 @@ import type { PerfScope } from "@/lib/compute";
 import { formatDamage, formatKeys } from "@/lib/format";
 import { Avatar } from "./Avatar";
 import { TotalPerformanceTable } from "./TotalPerformanceTable";
+import { SectionTitle } from "./SectionTitle";
 
 type SortKey =
   | "keysThisWeek"
@@ -19,7 +20,7 @@ type SortKey =
 const TABS: { key: PerfScope; label: string; accent: string }[] = [
   { key: "hydra", label: "Hydra Clash", accent: "text-hydra" },
   { key: "chimera", label: "Chimera Clash", accent: "text-chimera" },
-  { key: "total", label: "Total (All Weeks)", accent: "text-text" },
+  { key: "total", label: "Total (All Weeks)", accent: "text-gold" },
 ];
 
 type MemberFilter = "all" | "active" | "former";
@@ -115,19 +116,17 @@ export function PerformanceTable({
     <section className="rounded-2xl border border-border bg-panel">
       <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
         <div>
-          <h2 className="text-lg font-semibold">Clan Performance</h2>
-          <p className="mt-0.5 text-sm text-muted">
+          <SectionTitle>Clan Performance</SectionTitle>
+          <p className="mt-1 text-sm text-muted">
             {isTotal ? `All Weeks · ${allWeeksLabel}` : `Weekly · ${weekLabel}`}
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-panel-2 p-1">
+        <div className="pill-group">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setScope(t.key)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                scope === t.key ? `bg-panel ${t.accent}` : "text-muted hover:text-text"
-              }`}
+              className={`pill ${scope === t.key ? `bg-panel ${t.accent}` : ""}`}
             >
               {t.label}
             </button>
@@ -146,14 +145,12 @@ export function PerformanceTable({
           />
         </div>
         {isTotal && (
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-panel-2 p-1">
+          <div className="pill-group">
             {MEMBER_FILTERS.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setMemberFilter(f.key)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  memberFilter === f.key ? "bg-panel text-text" : "text-muted hover:text-text"
-                }`}
+                className={`pill ${memberFilter === f.key ? "pill-active" : ""}`}
               >
                 {f.label}
               </button>
@@ -167,7 +164,7 @@ export function PerformanceTable({
       ) : (
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] text-sm">
-          <thead className="text-left text-xs text-muted">
+          <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
             <tr className="border-b border-border">
               <th className="px-3 py-2 pl-5 font-medium">#</th>
               <th className="px-3 py-2 font-medium">Player</th>

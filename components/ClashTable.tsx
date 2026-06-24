@@ -6,6 +6,7 @@ import type { PerformanceRow, ClashType } from "@/lib/types";
 import { formatDamage, formatKeys } from "@/lib/format";
 import { Avatar } from "./Avatar";
 import { TrendBadge } from "./TrendBadge";
+import { SectionTitle } from "./SectionTitle";
 
 type SortKey =
   | "keysThisWeek"
@@ -49,14 +50,13 @@ export function ClashTable({
     { key: "participationPct", label: "Participation" },
     { key: "trendPct", label: "Trend" },
   ];
-  const accent = clashType === "hydra" ? "text-hydra" : "text-chimera";
   const participationColor = (pct: number) =>
     pct >= 90 ? "text-up" : pct >= 60 ? "text-muted" : "text-down";
 
   return (
     <section className="rounded-2xl border border-border bg-panel">
       <div className="flex items-center justify-between p-5 pb-3">
-        <h2 className={`text-lg font-semibold ${accent}`}>Player Breakdown</h2>
+        <SectionTitle tone={clashType}>Player Breakdown</SectionTitle>
         <div className="flex w-64 items-center gap-2 rounded-lg border border-border bg-panel-2 px-3 py-2">
           <Search size={15} className="text-muted" />
           <input
@@ -70,7 +70,7 @@ export function ClashTable({
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[680px] text-sm">
-          <thead className="text-left text-xs text-muted">
+          <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
             <tr className="border-b border-border">
               <th className="px-3 py-2 pl-5 font-medium">#</th>
               <th className="px-3 py-2 font-medium">Player</th>

@@ -7,12 +7,13 @@ import type { MemberClashStat } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
 import { TrendBadge } from "@/components/TrendBadge";
 import { ExportButton, type ExportData } from "@/components/ExportButton";
+import { SectionTitle } from "@/components/SectionTitle";
 import { formatDamage, formatKeys, formatDateRange } from "@/lib/format";
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-xl border border-border bg-panel-2 p-4">
-      <div className="text-sm text-muted">{label}</div>
+      <div className="stat-label">{label}</div>
       <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
       {sub && <div className="text-xs text-muted">{sub}</div>}
     </div>
@@ -38,7 +39,7 @@ function ClashBreakdown({ stat }: { stat: MemberClashStat }) {
         <span className={`grid h-9 w-9 place-items-center rounded-lg bg-panel-2 ${t.text}`}>
           <t.Icon size={20} />
         </span>
-        <h2 className={`text-lg font-semibold ${t.text}`}>{t.label}</h2>
+        <h2 className={`font-display text-sm font-semibold uppercase tracking-[0.18em] ${t.text}`}>{t.label}</h2>
         <span className="ml-auto">
           <TrendBadge value={stat.trendPct} />
         </span>
@@ -46,7 +47,7 @@ function ClashBreakdown({ stat }: { stat: MemberClashStat }) {
       <div className="mt-5 grid grid-cols-2 gap-y-4 sm:grid-cols-4 sm:divide-x sm:divide-border">
         {facts.map((f, i) => (
           <div key={f.label} className={i > 0 ? "sm:pl-4" : ""}>
-            <div className="text-xs text-muted">{f.label}</div>
+            <div className="stat-label">{f.label}</div>
             <div className="mt-1 text-xl font-semibold tabular-nums">{f.value}</div>
           </div>
         ))}
@@ -161,7 +162,7 @@ export default async function MemberDetailPage({
 
       {/* Lifetime summary */}
       <section className="rounded-2xl border border-border bg-panel p-5">
-        <h2 className="mb-4 text-lg font-semibold">Lifetime</h2>
+        <SectionTitle className="mb-4">Lifetime</SectionTitle>
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="Total Damage"
@@ -191,12 +192,12 @@ export default async function MemberDetailPage({
       {/* Week-by-week history */}
       <section className="rounded-2xl border border-border bg-panel">
         <div className="flex items-center justify-between p-5 pb-3">
-          <h2 className="text-lg font-semibold">Week-by-Week History</h2>
+          <SectionTitle>Week-by-Week History</SectionTitle>
           <span className="text-sm text-muted">{weeksPresent} weeks</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-sm">
-            <thead className="text-left text-xs text-muted">
+            <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
               <tr className="border-b border-border">
                 <th className="px-3 py-2 pl-5 font-medium">Week</th>
                 <th className="px-3 py-2 font-medium text-hydra">Hydra Keys</th>

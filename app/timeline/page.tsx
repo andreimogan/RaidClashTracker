@@ -3,6 +3,7 @@ import { getTimeline, latestWeekNumber, sortedWeeks } from "@/lib/compute";
 import { TopBar, type ExportData } from "@/components/TopBar";
 import { TimelineStrip } from "@/components/TimelineStrip";
 import { WeeklyBarChart } from "@/components/WeeklyBarChart";
+import { SectionTitle } from "@/components/SectionTitle";
 import { formatDamage, formatDateRange } from "@/lib/format";
 
 export default async function TimelinePage({
@@ -42,10 +43,10 @@ export default async function TimelinePage({
       </div>
 
       <section className="rounded-2xl border border-border bg-panel">
-        <h2 className="p-5 pb-3 text-lg font-semibold">Weekly Totals</h2>
+        <div className="p-5 pb-3"><SectionTitle>Weekly Totals</SectionTitle></div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">
-            <thead className="text-left text-xs text-muted">
+            <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
               <tr className="border-b border-border">
                 <th className="px-5 py-2 font-medium">Week</th>
                 <th className="px-3 py-2 font-medium">Dates</th>

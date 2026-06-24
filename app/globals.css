@@ -1,26 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0a0e17;
-  --color-panel: #0e1420;
-  --color-panel-2: #131c2b;
-  --color-border: #1d2839;
-  --color-border-soft: #182232;
-  --color-text: #e6edf3;
-  --color-muted: #8b97a8;
-  --color-faint: #5b6675;
+  --color-bg: #080b13;
+  --color-panel: #0c111c;
+  --color-panel-2: #111a29;
+  --color-border: #1b2942;
+  --color-border-soft: #142033;
+  --color-text: #e8eef6;
+  --color-muted: #8a98ad;
+  --color-faint: #586478;
 
-  --color-hydra: #34d399;
-  --color-hydra-dim: #1f7a5a;
-  --color-chimera: #a855f7;
-  --color-chimera-dim: #6b3fa0;
-  --color-gold: #d9b25a;
+  /* Clash accents — gestal-aligned: Hydra warm amber-bronze, Chimera steel-blue */
+  --color-hydra: #dca84f;
+  --color-hydra-dim: #8a6a33;
+  --color-chimera: #5aa2d6;
+  --color-chimera-dim: #356488;
 
-  --color-up: #4ade80;
-  --color-down: #f87171;
+  --color-gold: #d6b15f;
+  --color-gold-bright: #ecc878;
+
+  --color-up: #58c98a;
+  --color-down: #e06b6b;
 
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
+  --font-display: var(--font-cinzel), Georgia, "Times New Roman", serif;
 }
 
 html,
@@ -29,9 +33,41 @@ body {
 }
 
 body {
-  background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  /* Subtle ambient glow + faint concentric rings, gestal-style */
+  background-image:
+    radial-gradient(900px 520px at 50% -8%, rgba(214, 177, 95, 0.06), transparent 70%),
+    radial-gradient(760px 520px at 100% -4%, rgba(90, 162, 214, 0.05), transparent 70%),
+    repeating-radial-gradient(circle at 88% 18%, rgba(138, 152, 173, 0.04) 0 1px, transparent 1px 64px);
+  background-attachment: fixed;
+}
+
+/* ---- Reusable gestal-style primitives ---- */
+@layer components {
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-border bg-panel-2/50
+      px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted transition-colors
+      hover:border-gold/40 hover:text-gold disabled:opacity-40;
+  }
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-xs font-semibold
+      uppercase tracking-[0.12em] text-bg transition-opacity hover:opacity-90 disabled:opacity-40;
+  }
+  .pill-group {
+    @apply flex items-center gap-1 rounded-lg border border-border bg-panel-2 p-1;
+  }
+  .pill {
+    @apply rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-muted
+      transition-colors hover:text-text;
+  }
+  .pill-active {
+    @apply bg-panel text-gold;
+  }
+  .stat-label {
+    @apply text-[11px] uppercase tracking-[0.14em] text-muted;
+  }
 }
 
 /* Subtle custom scrollbars to match the dark theme */

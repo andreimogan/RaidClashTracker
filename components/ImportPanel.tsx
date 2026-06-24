@@ -241,7 +241,7 @@ export function ImportPanel({
         {envOverride ? (
           <span className="ml-auto text-xs text-faint">Pinned via DATABASE_URL.</span>
         ) : (
-          <div className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-panel-2 p-1">
+          <div className="pill-group ml-auto">
             {DEST.map((d) => {
               const on = d.key === active;
               const activeCls = d.key === "test" ? "bg-panel text-gold" : "bg-panel text-hydra";
@@ -250,9 +250,7 @@ export function ImportPanel({
                   key={d.key}
                   onClick={() => switchTo(d.key)}
                   disabled={on || !!switching}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    on ? activeCls : "text-muted hover:text-text"
-                  } disabled:cursor-default`}
+                  className={`pill disabled:cursor-default ${on ? activeCls : ""}`}
                 >
                   {switching === d.key ? "Switching…" : d.label}
                 </button>
@@ -268,7 +266,7 @@ export function ImportPanel({
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-panel-2 text-chimera">
             <FileJson size={20} />
           </span>
-          <h2 className="text-lg font-semibold">JSON Import</h2>
+          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-gold">JSON Import</h2>
         </div>
         <p className="mb-4 text-sm text-muted">
           Paste or upload a clash&apos;s standings — a flat array of{" "}
@@ -299,17 +297,13 @@ export function ImportPanel({
           </label>
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted">Clash</span>
-            <div className="flex items-center gap-1 rounded-lg border border-border bg-panel-2 p-1">
+            <div className="pill-group">
               {(["hydra", "chimera"] as ClashType[]).map((c) => (
                 <button
                   key={c}
                   onClick={() => setClashType(c)}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
-                    clashType === c
-                      ? c === "hydra"
-                        ? "bg-panel text-hydra"
-                        : "bg-panel text-chimera"
-                      : "text-muted hover:text-text"
+                  className={`pill ${
+                    clashType === c ? (c === "hydra" ? "bg-panel text-hydra" : "bg-panel text-chimera") : ""
                   }`}
                 >
                   {c}
@@ -331,10 +325,7 @@ export function ImportPanel({
         </div>
 
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-2 rounded-lg border border-border bg-panel-2 px-3 py-2 text-sm font-medium text-muted hover:text-text"
-          >
+          <button onClick={() => fileRef.current?.click()} className="btn-ghost">
             <Upload size={15} /> Choose .json file
           </button>
           <input
@@ -382,11 +373,7 @@ export function ImportPanel({
               <span className="text-sm text-muted">
                 Replace Week {weekNumber} <span className="capitalize">{clashType}</span> data?
               </span>
-              <button
-                onClick={importJson}
-                disabled={importing}
-                className="flex items-center gap-2 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-40"
-              >
+              <button onClick={importJson} disabled={importing} className="btn-accent bg-gold">
                 <Upload size={16} /> {importing ? "Replacing..." : "Replace"}
               </button>
               <button
@@ -400,7 +387,7 @@ export function ImportPanel({
             <button
               onClick={() => (existingCount > 0 ? setConfirmOverwrite(true) : importJson())}
               disabled={importing || !preview?.ok}
-              className="flex items-center gap-2 rounded-lg bg-chimera px-4 py-2 text-sm font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-40"
+              className="btn-accent bg-chimera"
             >
               <Upload size={16} /> {existingCount > 0 ? "Replace data" : importing ? "Importing..." : "Import"}
             </button>
@@ -421,7 +408,7 @@ export function ImportPanel({
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-panel-2 text-hydra">
             <Sheet size={20} />
           </span>
-          <h2 className="text-lg font-semibold">Google Sheet Sync</h2>
+          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-gold">Google Sheet Sync</h2>
         </div>
         <p className="mb-4 text-sm text-muted">
           Keep your sheet as the source of truth. Syncing <strong>mirrors</strong> it — each week
@@ -435,11 +422,7 @@ export function ImportPanel({
             placeholder="https://docs.google.com/spreadsheets/d/.../edit#gid=0"
             className="flex-1 rounded-lg border border-border bg-panel-2 px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-hydra/50"
           />
-          <button
-            onClick={syncSheet}
-            disabled={syncing || !sheetUrl.trim()}
-            className="flex items-center justify-center gap-2 rounded-lg bg-hydra px-4 py-2 text-sm font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-40"
-          >
+          <button onClick={syncSheet} disabled={syncing || !sheetUrl.trim()} className="btn-accent bg-hydra">
             <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
             {syncing ? "Syncing..." : "Sync"}
           </button>

@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { ExportButton, type ExportData } from "./ExportButton";
+import { PageTitle } from "./PageTitle";
 
 export type { ExportData };
 
@@ -35,7 +36,7 @@ export function TopBar({
 
   return (
     <div className="flex items-center justify-between gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      <PageTitle>{title}</PageTitle>
 
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 rounded-lg border border-border bg-panel px-3 py-2">

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Upload, Trash2, CheckCircle2, AlertTriangle } from "lucide-react";
 import type { DbEnv } from "@/lib/db";
+import { SectionTitle } from "./SectionTitle";
 
 type Msg = { ok: boolean; text: string } | null;
 
@@ -85,11 +86,7 @@ function ResetControl({ target, isActive }: { target: DbEnv; isActive: boolean }
             placeholder="Type RESET to confirm"
             className="rounded-lg border border-border bg-panel-2 px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-down/50"
           />
-          <button
-            onClick={doReset}
-            disabled={text !== "RESET" || busy}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-down px-4 py-2 text-sm font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-40"
-          >
+          <button onClick={doReset} disabled={text !== "RESET" || busy} className="btn-accent bg-down">
             <Trash2 size={16} /> {busy ? "Resetting..." : `Confirm reset ${label}`}
           </button>
           <button
@@ -141,7 +138,7 @@ export function DataManagement({ active }: { active: DbEnv }) {
 
   return (
     <section className="rounded-2xl border border-border bg-panel p-5">
-      <h2 className="mb-1 text-lg font-semibold">Data Management</h2>
+      <SectionTitle className="mb-1">Data Management</SectionTitle>
       <p className="mb-4 text-sm text-muted">
         Back up your data to a file, restore it later, or wipe a database to start over. Backup and
         restore act on the active database (<span className="text-text">{activeLabel}</span>).
@@ -149,17 +146,10 @@ export function DataManagement({ active }: { active: DbEnv }) {
 
       {/* Backup + Restore */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <a
-          href="/api/backup"
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-panel-2 px-4 py-2 text-sm font-medium text-text hover:border-border-soft"
-        >
+        <a href="/api/backup" className="btn-ghost">
           <Download size={16} /> Export backup
         </a>
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={restoring}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-panel-2 px-4 py-2 text-sm font-medium text-text hover:border-border-soft disabled:opacity-50"
-        >
+        <button onClick={() => fileRef.current?.click()} disabled={restoring} className="btn-ghost">
           <Upload size={16} /> {restoring ? "Restoring..." : "Restore from backup"}
         </button>
         <input

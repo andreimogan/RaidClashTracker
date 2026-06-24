@@ -8,6 +8,8 @@ import { SettingsTabs } from "@/components/SettingsTabs";
 import { ImportPanel } from "@/components/ImportPanel";
 import { DataManagement } from "@/components/DataManagement";
 import { DatabaseSwitcher } from "@/components/DatabaseSwitcher";
+import { PageTitle } from "@/components/PageTitle";
+import { SectionTitle } from "@/components/SectionTitle";
 
 // Reflects live DB state (seeded vs demo), so render per-request.
 export const dynamic = "force-dynamic";
@@ -36,7 +38,7 @@ export default async function SettingsPage() {
   const overview = (
     <div className="flex flex-col gap-6">
       <section className="rounded-2xl border border-border bg-panel p-5">
-        <h2 className="mb-4 text-lg font-semibold">Clan</h2>
+        <SectionTitle className="mb-4">Clan</SectionTitle>
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-border bg-panel-2 p-4">
             <div className="flex items-center gap-2 text-muted">
@@ -67,7 +69,7 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-border bg-panel p-5">
-        <h2 className="mb-4 text-lg font-semibold">Data Source</h2>
+        <SectionTitle className="mb-4">Data Source</SectionTitle>
         {source === "sqlite" ? (
           <div className="flex items-start gap-3 rounded-xl border border-hydra/30 bg-hydra/5 p-4">
             <CheckCircle2 className="mt-0.5 text-hydra" size={20} />
@@ -104,7 +106,7 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-border bg-panel p-5">
-        <h2 className="mb-2 text-lg font-semibold">Updating the Data</h2>
+        <SectionTitle className="mb-2">Updating the Data</SectionTitle>
         <ol className="ml-5 list-decimal space-y-1.5 text-sm text-muted">
           <li>One-time: <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:init</code> creates the local database (skip if it&apos;s already set up).</li>
           <li>After a clash ends, open the <span className="text-text">Import data</span> tab above — sync your Google Sheet, or upload/paste the clash JSON.</li>
@@ -136,7 +138,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Clan Settings</h1>
+      <PageTitle>Clan Settings</PageTitle>
       <SettingsTabs overview={overview} importPanel={importPanel} />
     </div>
   );

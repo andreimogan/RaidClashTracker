@@ -4,6 +4,7 @@ import { Bar, BarChart, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from 
 import type { TimelineWeek } from "@/lib/types";
 import type { ClashType } from "@/lib/types";
 import { formatDamage } from "@/lib/format";
+import { SectionTitle } from "./SectionTitle";
 
 export function WeeklyBarChart({
   timeline,
@@ -23,7 +24,7 @@ export function WeeklyBarChart({
 
   return (
     <section className="rounded-2xl border border-border bg-panel p-5">
-      <h2 className="text-lg font-semibold">Clan Damage by Week</h2>
+      <SectionTitle>Clan Damage by Week</SectionTitle>
       <div className="mt-4 h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>

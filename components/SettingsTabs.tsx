@@ -20,14 +20,12 @@ export function SettingsTabs({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex w-fit items-center gap-1 rounded-lg border border-border bg-panel-2 p-1">
+      <div className="pill-group w-fit">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-              tab === t.id ? "bg-panel text-text" : "text-muted hover:text-text"
-            }`}
+            className={`pill ${tab === t.id ? "pill-active" : ""}`}
           >
             {t.label}
           </button>

@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { TimelineWeek } from "@/lib/types";
 import { formatDamage, formatDateRange } from "@/lib/format";
+import { SectionTitle } from "./SectionTitle";
 
 export function TimelineStrip({
   data,
@@ -30,7 +31,7 @@ export function TimelineStrip({
   return (
     <section className="rounded-2xl border border-border bg-panel p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Clash Timeline</h2>
+        <SectionTitle>Clash Timeline</SectionTitle>
         <div className="flex items-center gap-4 text-xs text-muted">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-hydra" /> Hydra Clash

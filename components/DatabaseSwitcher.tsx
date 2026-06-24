@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Database, FlaskConical, AlertTriangle } from "lucide-react";
+import { SectionTitle } from "./SectionTitle";
 
 type DbEnv = "production" | "test";
 
@@ -54,10 +55,7 @@ export function DatabaseSwitcher({
 
   return (
     <section className="rounded-2xl border border-border bg-panel p-5">
-      <div className="flex items-center gap-2">
-        <Database size={18} className="text-muted" />
-        <h2 className="text-lg font-semibold">Database</h2>
-      </div>
+      <SectionTitle>Database</SectionTitle>
       <p className="mt-1 text-sm text-muted">
         Switch between your live <span className="text-text">Production</span> data and an
         isolated <span className="text-gold">Test</span> sandbox. Imports, resets and backups

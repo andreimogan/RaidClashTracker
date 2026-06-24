@@ -76,7 +76,7 @@ export function TotalPerformanceTable({
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[920px] text-sm">
-        <thead className="text-left text-xs text-muted">
+        <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
           <tr className="border-b border-border">
             <th rowSpan={2} className="px-3 py-2 pl-5 align-bottom font-medium">#</th>
             <th rowSpan={2} className="px-3 py-2 align-bottom font-medium">Player</th>

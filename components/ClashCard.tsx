@@ -22,7 +22,7 @@ const THEME = {
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="px-4 first:pl-0">
-      <div className="text-xs text-muted">{label}</div>
+      <div className="stat-label">{label}</div>
       <div className="mt-1 text-2xl font-semibold tracking-tight">{value}</div>
       {sub && <div className="text-xs text-muted">{sub}</div>}
     </div>
@@ -37,7 +37,7 @@ export function ClashCard({ stats, dateRange }: { stats: OverviewStats; dateRang
         <span className={`grid h-9 w-9 place-items-center rounded-lg bg-panel-2 ${t.text} ${t.glow}`}>
           <t.Icon size={20} />
         </span>
-        <h2 className={`text-lg font-semibold ${t.text}`}>{t.label}</h2>
+        <h2 className={`font-display text-sm font-semibold uppercase tracking-[0.18em] ${t.text}`}>{t.label}</h2>
         {dateRange && <span className="ml-auto text-xs text-muted">{dateRange} UTC</span>}
       </div>
 

@@ -25,11 +25,7 @@ export function downloadCsv({ filename, headers, rows }: ExportData) {
 
 export function ExportButton({ data }: { data?: ExportData }) {
   return (
-    <button
-      onClick={() => data && downloadCsv(data)}
-      disabled={!data}
-      className="flex items-center gap-2 rounded-lg border border-border bg-panel px-3 py-2 text-sm font-medium text-muted enabled:hover:text-text disabled:opacity-40"
-    >
+    <button onClick={() => data && downloadCsv(data)} disabled={!data} className="btn-ghost">
       <Download size={15} />
       Export
     </button>

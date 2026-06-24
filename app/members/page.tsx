@@ -3,6 +3,7 @@ import { loadDataset } from "@/lib/data";
 import { activeMemberIds, latestWeekNumber, sortedWeeks } from "@/lib/compute";
 import { TopBar, type ExportData } from "@/components/TopBar";
 import { Avatar } from "@/components/Avatar";
+import { SectionTitle } from "@/components/SectionTitle";
 import { formatDamage, formatDateRange, formatKeys } from "@/lib/format";
 
 export default async function MembersPage({
@@ -67,7 +68,7 @@ export default async function MembersPage({
       <TopBar title="Members" weekNumbers={weekNumbers} weekRanges={weekRanges} currentWeek={selectedWeek} exportData={exportData} />
       <section className="rounded-2xl border border-border bg-panel">
         <div className="flex items-center justify-between p-5 pb-3">
-          <h2 className="text-lg font-semibold">Roster</h2>
+          <SectionTitle>Roster</SectionTitle>
           <span className="text-sm text-muted">
             <span className="text-hydra">{activeCount} active</span> · {formerCount} former ·{" "}
             {summaries.length} tracked
@@ -75,7 +76,7 @@ export default async function MembersPage({
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-sm">
-            <thead className="text-left text-xs text-muted">
+            <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
               <tr className="border-b border-border">
                 <th className="px-3 py-2 pl-5 font-medium">#</th>
                 <th className="px-3 py-2 font-medium">Player</th>
