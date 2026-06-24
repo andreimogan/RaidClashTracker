@@ -22,7 +22,14 @@ export async function ClashDetailView({
   weekParam?: string;
 }) {
   const ds = await loadDataset();
-  const weekNumbers = sortedWeeks(ds).map((w) => w.weekNumber);
+  const weeks = sortedWeeks(ds);
+  const weekNumbers = weeks.map((w) => w.weekNumber);
+  const weekRanges = Object.fromEntries(
+    weeks.map((w) => {
+      const win = clashWindow(w.startDate, clashType);
+      return [w.weekNumber, formatDateRange(win.startDate, win.endDate)];
+    }),
+  );
   const requested = Number(weekParam);
   const selectedWeek = weekNumbers.includes(requested) ? requested : latestWeekNumber(ds);
 
@@ -31,7 +38,7 @@ export async function ClashDetailView({
   const timeline = getTimeline(ds);
   const title = clashType === "hydra" ? "Hydra Clash" : "Chimera Clash";
 
-  const weekObj = sortedWeeks(ds).find((w) => w.weekNumber === selectedWeek);
+  const weekObj = weeks.find((w) => w.weekNumber === selectedWeek);
   const dateRange = weekObj
     ? (() => {
         const win = clashWindow(weekObj.startDate, clashType);
@@ -55,7 +62,7 @@ export async function ClashDetailView({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <TopBar title={title} weekNumbers={weekNumbers} currentWeek={selectedWeek} exportData={exportData} />
+      <TopBar title={title} weekNumbers={weekNumbers} weekRanges={weekRanges} currentWeek={selectedWeek} exportData={exportData} />
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <ClashCard stats={overview} dateRange={dateRange} />

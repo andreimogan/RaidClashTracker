@@ -3,7 +3,7 @@ import { loadDataset } from "@/lib/data";
 import { activeMemberIds, latestWeekNumber, sortedWeeks } from "@/lib/compute";
 import { TopBar, type ExportData } from "@/components/TopBar";
 import { Avatar } from "@/components/Avatar";
-import { formatDamage, formatKeys } from "@/lib/format";
+import { formatDamage, formatDateRange, formatKeys } from "@/lib/format";
 
 export default async function MembersPage({
   searchParams,
@@ -14,6 +14,9 @@ export default async function MembersPage({
   const ds = await loadDataset();
   const weeks = sortedWeeks(ds);
   const weekNumbers = weeks.map((w) => w.weekNumber);
+  const weekRanges = Object.fromEntries(
+    weeks.map((w) => [w.weekNumber, formatDateRange(w.startDate, w.endDate)]),
+  );
   const requested = Number(week);
   const selectedWeek = weekNumbers.includes(requested) ? requested : latestWeekNumber(ds);
   const activeIds = activeMemberIds(ds);
@@ -61,7 +64,7 @@ export default async function MembersPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <TopBar title="Members" weekNumbers={weekNumbers} currentWeek={selectedWeek} exportData={exportData} />
+      <TopBar title="Members" weekNumbers={weekNumbers} weekRanges={weekRanges} currentWeek={selectedWeek} exportData={exportData} />
       <section className="rounded-2xl border border-border bg-panel">
         <div className="flex items-center justify-between p-5 pb-3">
           <h2 className="text-lg font-semibold">Roster</h2>

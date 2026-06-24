@@ -11,11 +11,13 @@ export function TopBar({
   weekNumbers,
   currentWeek,
   exportData,
+  weekRanges,
 }: {
   title: string;
   weekNumbers: number[];
   currentWeek: number;
   exportData?: ExportData;
+  weekRanges?: Record<number, string>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,7 +47,7 @@ export function TopBar({
           >
             {weekNumbers.map((w) => (
               <option key={w} value={w} className="bg-panel text-text">
-                Week {w}
+                Week {w}{weekRanges?.[w] ? ` (${weekRanges[w]})` : ""}
               </option>
             ))}
           </select>

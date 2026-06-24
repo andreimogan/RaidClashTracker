@@ -27,6 +27,9 @@ export default async function DashboardPage({
 
   const weeks = sortedWeeks(ds);
   const weekNumbers = weeks.map((w) => w.weekNumber);
+  const weekRanges = Object.fromEntries(
+    weeks.map((w) => [w.weekNumber, formatDateRange(w.startDate, w.endDate)]),
+  );
   const requested = Number(week);
   const selectedWeek = weekNumbers.includes(requested) ? requested : latestWeekNumber(ds);
 
@@ -71,6 +74,7 @@ export default async function DashboardPage({
       <TopBar
         title="Overview"
         weekNumbers={weekNumbers}
+        weekRanges={weekRanges}
         currentWeek={selectedWeek}
         exportData={exportData}
       />

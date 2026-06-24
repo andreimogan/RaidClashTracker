@@ -12,7 +12,11 @@ export default async function TimelinePage({
 }) {
   const { week } = await searchParams;
   const ds = await loadDataset();
-  const weekNumbers = sortedWeeks(ds).map((w) => w.weekNumber);
+  const weeks = sortedWeeks(ds);
+  const weekNumbers = weeks.map((w) => w.weekNumber);
+  const weekRanges = Object.fromEntries(
+    weeks.map((w) => [w.weekNumber, formatDateRange(w.startDate, w.endDate)]),
+  );
   const requested = Number(week);
   const selectedWeek = weekNumbers.includes(requested) ? requested : latestWeekNumber(ds);
   const timeline = getTimeline(ds);
@@ -30,7 +34,7 @@ export default async function TimelinePage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <TopBar title="Timeline" weekNumbers={weekNumbers} currentWeek={selectedWeek} exportData={exportData} />
+      <TopBar title="Timeline" weekNumbers={weekNumbers} weekRanges={weekRanges} currentWeek={selectedWeek} exportData={exportData} />
       <TimelineStrip data={timeline} currentWeek={selectedWeek} />
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <WeeklyBarChart timeline={timeline} clashType="hydra" currentWeek={selectedWeek} />
