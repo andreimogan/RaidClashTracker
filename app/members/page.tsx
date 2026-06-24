@@ -47,12 +47,11 @@ export default async function MembersPage({
 
   const exportData: ExportData = {
     filename: "members.csv",
-    headers: ["Player", "Status", "Weeks", "Level", "Hydra Total", "Chimera Total", "Avg Keys/Week", "Participation %"],
+    headers: ["Player", "Status", "Weeks", "Hydra Total", "Chimera Total", "Avg Keys/Week", "Participation %"],
     rows: summaries.map((s) => [
       s.member.inGameName,
       s.isActive ? "Active" : "Former",
       s.weeksPresent,
-      s.member.level,
       formatDamage(s.hydraTotal),
       formatDamage(s.chimeraTotal),
       formatKeys(s.avgKeys),
@@ -79,7 +78,6 @@ export default async function MembersPage({
                 <th className="px-3 py-2 font-medium">Player</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Weeks</th>
-                <th className="px-3 py-2 font-medium">Level</th>
                 <th className="px-3 py-2 font-medium text-hydra">Hydra Total</th>
                 <th className="px-3 py-2 font-medium text-chimera">Chimera Total</th>
                 <th className="px-3 py-2 font-medium">Avg Keys / Week</th>
@@ -92,7 +90,7 @@ export default async function MembersPage({
                   <td className="px-3 py-2.5 pl-5 text-muted tabular-nums">{i + 1}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-3">
-                      <Avatar name={s.member.inGameName} size={32} badge={s.member.heroLevel} />
+                      <Avatar name={s.member.inGameName} size={32} />
                       <Link
                         href={`/members/${encodeURIComponent(s.member.id)}`}
                         className={`font-medium hover:text-text hover:underline ${s.isActive ? "" : "text-muted"}`}
@@ -113,7 +111,6 @@ export default async function MembersPage({
                     )}
                   </td>
                   <td className="px-3 py-2.5 tabular-nums text-muted">{s.weeksPresent}</td>
-                  <td className="px-3 py-2.5 tabular-nums text-muted">{s.member.level}</td>
                   <td className="px-3 py-2.5 tabular-nums">{formatDamage(s.hydraTotal)}</td>
                   <td className="px-3 py-2.5 tabular-nums">{formatDamage(s.chimeraTotal)}</td>
                   <td className="px-3 py-2.5 tabular-nums text-muted">{formatKeys(s.avgKeys)}</td>

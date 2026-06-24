@@ -135,7 +135,6 @@ export default async function MemberDetailPage({
         <Avatar
           name={member.inGameName}
           size={56}
-          badge={member.heroLevel}
           ring={isActive ? "hydra" : "none"}
         />
         <div>
@@ -152,8 +151,7 @@ export default async function MemberDetailPage({
             )}
           </div>
           <div className="mt-1 text-sm text-muted">
-            Account Lv {member.level} · Hero Lv {member.heroLevel} · Tracked {tracked} ·{" "}
-            {weeksPresent} weeks ({weeksActive} active)
+            Tracked {tracked} · {weeksPresent} weeks ({weeksActive} active)
           </div>
         </div>
         <div className="ml-auto">
