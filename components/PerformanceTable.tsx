@@ -6,7 +6,6 @@ import type { ClashType, MemberTotalsRow, PerformanceRow } from "@/lib/types";
 import type { PerfScope } from "@/lib/compute";
 import { formatDamage, formatKeys } from "@/lib/format";
 import { Avatar } from "./Avatar";
-import { TrendBadge } from "./TrendBadge";
 import { TotalPerformanceTable } from "./TotalPerformanceTable";
 
 type SortKey =
@@ -15,8 +14,7 @@ type SortKey =
   | "damageThisWeek"
   | "damageAverage"
   | "avgDamagePerKey"
-  | "participationPct"
-  | "trendPct";
+  | "participationPct";
 
 const TABS: { key: PerfScope; label: string; accent: string }[] = [
   { key: "hydra", label: "Hydra Clash", accent: "text-hydra" },
@@ -178,8 +176,7 @@ export function PerformanceTable({
               <HeaderCell label="Damage (Week)" sortKey="damageThisWeek" active={sortKey === "damageThisWeek"} dir={dir} onSort={onSort} />
               <HeaderCell label="Damage (Avg)" sortKey="damageAverage" active={sortKey === "damageAverage"} dir={dir} onSort={onSort} />
               <HeaderCell label="Avg Dmg / Key" sortKey="avgDamagePerKey" active={sortKey === "avgDamagePerKey"} dir={dir} onSort={onSort} />
-              <HeaderCell label="Participation" sortKey="participationPct" active={sortKey === "participationPct"} dir={dir} onSort={onSort} />
-              <HeaderCell label="Trend" sortKey="trendPct" active={sortKey === "trendPct"} dir={dir} onSort={onSort} className="pr-5" />
+              <HeaderCell label="Participation" sortKey="participationPct" active={sortKey === "participationPct"} dir={dir} onSort={onSort} className="pr-5" />
             </tr>
           </thead>
           <tbody>
@@ -205,17 +202,14 @@ export function PerformanceTable({
                 <td className="px-3 py-2.5 tabular-nums">{formatDamage(r.damageThisWeek)}</td>
                 <td className="px-3 py-2.5 tabular-nums text-muted">{formatDamage(r.damageAverage)}</td>
                 <td className="px-3 py-2.5 tabular-nums">{formatDamage(r.avgDamagePerKey)}</td>
-                <td className={`px-3 py-2.5 tabular-nums ${participationColor(r.participationPct)}`}>
+                <td className={`px-3 py-2.5 pr-5 tabular-nums ${participationColor(r.participationPct)}`}>
                   {r.participationPct.toFixed(0)}%
-                </td>
-                <td className="px-3 py-2.5 pr-5 tabular-nums">
-                  <TrendBadge value={r.trendPct} />
                 </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-5 py-10 text-center text-muted">
+                <td colSpan={8} className="px-5 py-10 text-center text-muted">
                   No players match “{query}”.
                 </td>
               </tr>
