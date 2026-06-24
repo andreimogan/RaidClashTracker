@@ -68,3 +68,43 @@ export interface KeyUsageSummary {
   hydraAvgKeys: number;
   chimeraAvgKeys: number;
 }
+
+// ---- Member detail (per-member history) ----
+
+// One week of a single member's results (both clashes), incl. benched 0-key weeks.
+export interface MemberWeekRow {
+  week: Week;
+  hydra: { keys: number; damage: number };
+  chimera: { keys: number; damage: number };
+  totalKeys: number;
+  totalDamage: number;
+  participationPct: number; // totalKeys / max possible (Hydra 3 + Chimera 2)
+  trendPct: number; // total dmg/key vs the member's prior present weeks
+}
+
+// A member's lifetime stats for one scope (hydra | chimera | total).
+export interface MemberClashStat {
+  scope: "hydra" | "chimera" | "total";
+  totalDamage: number;
+  totalKeys: number;
+  weeksPresent: number; // weeks with any row for this scope
+  weeksActive: number; // weeks with keys > 0
+  avgKeys: number; // keys per present week
+  avgDamagePerKey: number;
+  participationPct: number; // keys used vs keys available across present weeks
+  trendPct: number; // from the member's latest present week
+}
+
+export interface MemberProfile {
+  member: Member;
+  isActive: boolean;
+  firstWeek?: Week;
+  lastWeek?: Week;
+  weeksPresent: number;
+  weeksActive: number;
+  bestWeek?: Week; // highest total damage week
+  history: MemberWeekRow[]; // ascending by week number
+  total: MemberClashStat;
+  hydra: MemberClashStat;
+  chimera: MemberClashStat;
+}

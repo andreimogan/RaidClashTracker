@@ -7,6 +7,9 @@ import type {
   ClashType,
   KeyUsageSummary,
   Member,
+  MemberClashStat,
+  MemberProfile,
+  MemberWeekRow,
   OverviewStats,
   PerformanceRow,
   TimelineWeek,
@@ -190,5 +193,100 @@ export function getKeyUsageSummary(
   return {
     hydraAvgKeys: getOverview(ds, weekNumber, "hydra").keyUsageAvg,
     chimeraAvgKeys: getOverview(ds, weekNumber, "chimera").keyUsageAvg,
+  };
+}
+
+// Lifetime stats for one member + scope across the weeks they were present.
+function memberClashStat(
+  ds: Dataset,
+  memberId: string,
+  presentWeeks: Week[],
+  scope: PerfScope,
+): MemberClashStat {
+  const perWeek = presentWeeks.map((w) => aggregateMemberWeek(ds, memberId, w.id, scope));
+  const totalKeys = perWeek.reduce((s, a) => s + a.keys, 0);
+  const totalDamage = perWeek.reduce((s, a) => s + a.damage, 0);
+  const weeksPresent = presentWeeks.length;
+  const weeksActive = perWeek.filter((a) => a.keys > 0).length;
+
+  // Trend = the member's trend in their latest present week (reuses getPerformance).
+  const lastWeek = presentWeeks.at(-1);
+  const trendPct = lastWeek
+    ? getPerformance(ds, lastWeek.weekNumber, scope).find((r) => r.member.id === memberId)
+        ?.trendPct ?? 0
+    : 0;
+
+  const maxKeys = maxKeysFor(scope);
+  return {
+    scope,
+    totalDamage,
+    totalKeys,
+    weeksPresent,
+    weeksActive,
+    avgKeys: weeksPresent ? totalKeys / weeksPresent : 0,
+    avgDamagePerKey: totalKeys ? totalDamage / totalKeys : 0,
+    participationPct: weeksPresent && maxKeys ? (totalKeys / (weeksPresent * maxKeys)) * 100 : 0,
+    trendPct,
+  };
+}
+
+// Everything the member detail page needs. Returns null if the id is unknown.
+export function getMemberProfile(ds: Dataset, memberId: string): MemberProfile | null {
+  const member = ds.members.find((m) => m.id === memberId);
+  if (!member) return null;
+
+  const weeks = sortedWeeks(ds);
+  // Weeks where the member has any row (incl. benched 0-key rows).
+  const presentWeekIds = new Set(
+    ds.results.filter((r) => r.memberId === memberId).map((r) => r.weekId),
+  );
+  const presentWeeks = weeks.filter((w) => presentWeekIds.has(w.id));
+
+  const history: MemberWeekRow[] = presentWeeks.map((week) => {
+    const hydra = aggregateMemberWeek(ds, memberId, week.id, "hydra");
+    const chimera = aggregateMemberWeek(ds, memberId, week.id, "chimera");
+    const totalKeys = hydra.keys + chimera.keys;
+    const totalDamage = hydra.damage + chimera.damage;
+    const maxKeys = maxKeysFor("total");
+
+    // Trend: this week's total dmg/key vs the average of prior present weeks.
+    const thisPerKey = totalKeys ? totalDamage / totalKeys : 0;
+    const priorPerKey = presentWeeks
+      .filter((w) => w.weekNumber < week.weekNumber)
+      .map((w) => aggregateMemberWeek(ds, memberId, w.id, "total"))
+      .filter((a) => a.keys > 0)
+      .map((a) => a.damage / a.keys);
+    const priorAvg = priorPerKey.length
+      ? priorPerKey.reduce((s, v) => s + v, 0) / priorPerKey.length
+      : 0;
+
+    return {
+      week,
+      hydra,
+      chimera,
+      totalKeys,
+      totalDamage,
+      participationPct: maxKeys ? Math.min(100, (totalKeys / maxKeys) * 100) : 0,
+      trendPct: priorAvg > 0 ? ((thisPerKey - priorAvg) / priorAvg) * 100 : 0,
+    };
+  });
+
+  const activeIds = activeMemberIds(ds);
+  const bestWeek = history.length
+    ? history.reduce((best, r) => (r.totalDamage > best.totalDamage ? r : best)).week
+    : undefined;
+
+  return {
+    member: { ...member, isActive: activeIds.has(member.id) },
+    isActive: activeIds.has(member.id),
+    firstWeek: presentWeeks[0],
+    lastWeek: presentWeeks.at(-1),
+    weeksPresent: presentWeeks.length,
+    weeksActive: history.filter((r) => r.totalKeys > 0).length,
+    bestWeek,
+    history,
+    total: memberClashStat(ds, memberId, presentWeeks, "total"),
+    hydra: memberClashStat(ds, memberId, presentWeeks, "hydra"),
+    chimera: memberClashStat(ds, memberId, presentWeeks, "chimera"),
   };
 }

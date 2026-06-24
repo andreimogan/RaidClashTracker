@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { loadDataset } from "@/lib/data";
 import { activeMemberIds, latestWeekNumber, sortedWeeks } from "@/lib/compute";
 import { TopBar, type ExportData } from "@/components/TopBar";
@@ -92,9 +93,12 @@ export default async function MembersPage({
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-3">
                       <Avatar name={s.member.inGameName} size={32} badge={s.member.heroLevel} />
-                      <span className={`font-medium ${s.isActive ? "" : "text-muted"}`}>
+                      <Link
+                        href={`/members/${s.member.id}`}
+                        className={`font-medium hover:text-text hover:underline ${s.isActive ? "" : "text-muted"}`}
+                      >
                         {s.member.inGameName}
-                      </span>
+                      </Link>
                     </div>
                   </td>
                   <td className="px-3 py-2.5">
