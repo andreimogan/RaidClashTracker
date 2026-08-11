@@ -1,0 +1,11 @@
+---
+# Path-scoped rule. Loads ONLY when Claude touches a matching file, so it
+# costs zero tokens elsewhere. Bootstrap discovers the real globs from the repo.
+paths:
+  - "<glob, e.g. src/components/**>"
+---
+
+<Concise, high-signal rules for files in this path. Examples:>
+- <convention 1>
+- <convention 2>
+- Pull design tokens / config from their source; do not hardcode.

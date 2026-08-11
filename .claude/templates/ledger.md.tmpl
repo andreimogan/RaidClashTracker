@@ -1,0 +1,25 @@
+# Task ledger: <feature-slug>
+
+<!-- One per order, at docs/tasks/<feature-slug>.md. Written by task-planner,
+     claimed/updated by implementers, advanced by integrator and reviewer.
+     See .claude/conventions/handoff-contract.md for the full contract. -->
+
+order: "<the original prompt / order, verbatim>"
+status: planning   # planning | approved | in-progress | integrating | review | done | blocked
+created: <ISO datetime>
+
+## Tasks
+
+- id: t1
+  summary: <one line>
+  owns:                 # exclusive, disjoint from every other task
+    - <path or glob>
+  depends_on: []
+  done_when: <acceptance criteria>
+  docs_touched:
+    - docs/reference/<doc>.md
+  claimed_by: ""
+  state: pending        # pending | claimed | building | done | blocked
+
+# - id: t2
+#   ...

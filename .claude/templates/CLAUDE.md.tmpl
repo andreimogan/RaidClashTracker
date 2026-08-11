@@ -1,0 +1,37 @@
+# <PROJECT NAME>
+
+<!-- Bootstrap fills the <angle-bracket> parts from evidence or the questionnaire.
+     Keep this file small and high-signal — under ~200 lines. It loads every session. -->
+
+<ONE-LINE description of what this project is and does>
+
+## Commands
+- dev: `<run command>`
+- build: `<build command>`
+- test: `<test command>`
+- lint: `<lint command>`
+
+## Layout
+<Short map of the important directories and what lives in each.>
+
+## Conventions (always)
+- Match existing patterns; read neighboring files before writing new ones.
+- <project-specific always-rules, e.g. styling tokens, no new deps without reason>
+
+## Deeper rules
+See `.claude/rules/` — path-scoped, they load only when relevant.
+
+---
+
+## Operating directive (standing)
+
+This project runs an agent team. As the main session, you are the orchestrator (no orchestrator subagent exists — subagents can't spawn subagents).
+
+**On every substantive prompt:** follow `.claude/recipes/operating-recipe.md` — analyze the prompt, select suitable agents from `.claude/agents/` by their descriptions, have `task-planner` plan first with disjoint file ownership, present the plan for approval in **plan mode** (the one gate), then dispatch parallel `flow-implementer`s → `integrator` → `flow-reviewer` (with doc-sync) → report and append to `docs/build-log.md`.
+
+- Quick questions / one-off edits: answer directly or the user uses `/direct`.
+- Keep the human at the plan gate; never skip it.
+- Never invent APIs, contracts, or facts — flag unknowns.
+
+## Maintenance cadence
+Run `maintainer` every <N=5> completed orders, or after any architecture change.
