@@ -4,27 +4,25 @@ import { formatDamage, formatKeys } from "@/lib/format";
 
 const THEME = {
   hydra: {
-    label: "Hydra Clash",
+    label: "HYDRA CLASH",
     Icon: Flame,
     text: "text-hydra",
-    bar: "bg-hydra",
-    glow: "shadow-[0_0_24px_-8px_var(--color-hydra)]",
+    bar: "fill-hydra",
   },
   chimera: {
-    label: "Chimera Clash",
+    label: "CHIMERA CLASH",
     Icon: Cat,
     text: "text-chimera",
-    bar: "bg-chimera",
-    glow: "shadow-[0_0_24px_-8px_var(--color-chimera)]",
+    bar: "fill-chimera",
   },
 } as const;
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Stat({ label, value, caption }: { label: string; value: string; caption?: string }) {
   return (
-    <div className="px-4 first:pl-0">
-      <div className="stat-label">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight">{value}</div>
-      {sub && <div className="text-xs text-muted">{sub}</div>}
+    <div className="flex-1 px-4 py-3 text-center">
+      <div className="text-[11px] font-medium leading-tight text-muted">{label}</div>
+      <div className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{value}</div>
+      {caption && <div className="text-xs text-muted">{caption}</div>}
     </div>
   );
 }
@@ -32,28 +30,25 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 export function ClashCard({ stats, dateRange }: { stats: OverviewStats; dateRange?: string }) {
   const t = THEME[stats.clashType];
   return (
-    <section className="rounded-2xl border border-border bg-panel p-5">
+    <section className="card xl:h-full">
       <div className="flex items-center gap-2.5">
-        <span className={`grid h-9 w-9 place-items-center rounded-lg bg-panel-2 ${t.text} ${t.glow}`}>
-          <t.Icon size={20} />
-        </span>
-        <h2 className={`font-display text-sm font-semibold uppercase tracking-[0.18em] ${t.text}`}>{t.label}</h2>
-        {dateRange && <span className="ml-auto text-xs text-muted">{dateRange} UTC</span>}
+        <t.Icon size={22} className={t.text} />
+        <h2 className={`font-display text-base font-semibold ${t.text}`}>{t.label}</h2>
+        {dateRange && <span className="ml-auto text-s text-muted">{dateRange} UTC</span>}
       </div>
 
-      <div className="mt-5 grid grid-cols-4 divide-x divide-border">
-        <Stat label="Key Usage" value={formatKeys(stats.keyUsageAvg)} sub="Average" />
+      <div className="mt-4 flex divide-x divide-border overflow-hidden inset">
+        <Stat label="Key Usage" value={formatKeys(stats.keyUsageAvg)} caption="Average" />
         <Stat label="Total Damage" value={formatDamage(stats.totalDamage)} />
         <Stat label="Avg Damage / Key" value={formatDamage(stats.avgDamagePerKey)} />
         <Stat
           label="Members Participated"
-          value={`${stats.membersParticipated}`}
-          sub={`of ${stats.totalMembers}`}
+          value={`${stats.membersParticipated} / ${stats.totalMembers}`}
         />
       </div>
 
-      <div className="mt-5 flex items-center gap-3">
-        <span className="text-xs text-muted">Progress</span>
+      <div className="mt-4 flex items-center gap-3">
+        <span className="text-s text-muted">Progress</span>
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-border">
           <div
             className={`h-full rounded-full ${t.bar}`}
@@ -61,7 +56,6 @@ export function ClashCard({ stats, dateRange }: { stats: OverviewStats; dateRang
           />
         </div>
         <span className="text-sm font-medium tabular-nums">{stats.progress.toFixed(1)}%</span>
-        <span className="text-xs text-muted">keys used</span>
       </div>
     </section>
   );

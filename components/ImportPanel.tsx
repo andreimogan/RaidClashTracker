@@ -82,9 +82,13 @@ export function ImportPanel({
   }
 
   // ---- week / clash selection ----
+  const [weekNumber, setWeekNumber] = useState(currentWeek.weekNumber);
+  const [clashType, setClashType] = useState<ClashType>("hydra");
+
   const existingNumbers = useMemo(() => new Set(weeks.map((w) => w.weekNumber)), [weeks]);
 
   // The current week + the last ~12 weeks, plus any already-imported weeks.
+  // Both the listed range and the has-data tag follow the selected clash.
   const weekOptions = useMemo(() => {
     const nums = new Set<number>(existingNumbers);
     for (let i = 0; i < RECENT_WEEKS; i++) {
@@ -94,25 +98,21 @@ export function ImportPanel({
     return [...nums]
       .sort((a, b) => b - a)
       .map((n) => {
-        const win = clashWindow(weekWednesday(currentWeek.weekNumber, currentWeek.startDate, n), "hydra");
-        const counts = existingData[n];
+        const win = clashWindow(weekWednesday(currentWeek.weekNumber, currentWeek.startDate, n), clashType);
         return {
           weekNumber: n,
           range: formatDateRange(win.startDate, win.endDate),
           isCurrent: n === currentWeek.weekNumber,
-          hasData: !!counts && counts.hydra + counts.chimera > 0,
+          hasData: (existingData[n]?.[clashType] ?? 0) > 0,
         };
       });
-  }, [existingNumbers, currentWeek, existingData]);
-
-  const [weekNumber, setWeekNumber] = useState(currentWeek.weekNumber);
-  const [clashType, setClashType] = useState<ClashType>("hydra");
+  }, [existingNumbers, currentWeek, existingData, clashType]);
 
   // Rows already stored for the selected (week, clash) — drives the overwrite prompt.
   const existingCount = existingData[weekNumber]?.[clashType] ?? 0;
 
   // Dates are derived from the clash schedule, not entered by hand:
-  // `window` = the selected clash's display dates; `canonical` = the Hydra
+  // `clashDates` = the selected clash's display dates; `canonical` = the Hydra
   // Wed→next-Wed window stored on the week row.
   const wed = weekWednesday(currentWeek.weekNumber, currentWeek.startDate, weekNumber);
   const clashDates = clashWindow(wed, clashType);
@@ -171,8 +171,12 @@ export function ImportPanel({
         }),
       });
       const data = await res.json();
-      if (!data.ok) setJsonError(data.error);
-      else setJsonResult(data.summary);
+      if (!res.ok || !data.ok) setJsonError(data.error);
+      else {
+        setJsonResult(data.summary);
+        setConfirmOverwrite(false); // the rows are gone; don't keep offering to replace them
+        router.refresh(); // re-read existingData so the week tags / overwrite warning stay true
+      }
     } catch (err) {
       setJsonError(err instanceof Error ? err.message : "Import request failed.");
     } finally {
@@ -203,8 +207,11 @@ export function ImportPanel({
         body: JSON.stringify({ url: sheetUrl }),
       });
       const data = await res.json();
-      if (!data.ok) setSheetError(data.error);
-      else setSheetResult(data.summary);
+      if (!res.ok || !data.ok) setSheetError(data.error);
+      else {
+        setSheetResult(data.summary);
+        router.refresh(); // re-read existingData so the week tags / overwrite warning stay true
+      }
     } catch (err) {
       setSheetError(err instanceof Error ? err.message : "Sync request failed.");
     } finally {
@@ -261,7 +268,7 @@ export function ImportPanel({
       </div>
 
       {/* JSON import */}
-      <section className="rounded-2xl border border-border bg-panel p-5">
+      <section className="card">
         <div className="mb-1 flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-panel-2 text-chimera">
             <FileJson size={20} />
@@ -297,11 +304,12 @@ export function ImportPanel({
           </label>
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted">Clash</span>
-            <div className="pill-group">
+            <div className="pill-group" role="group" aria-label="Clash">
               {(["hydra", "chimera"] as ClashType[]).map((c) => (
                 <button
                   key={c}
                   onClick={() => setClashType(c)}
+                  aria-pressed={clashType === c}
                   className={`pill ${
                     clashType === c ? (c === "hydra" ? "bg-panel text-hydra" : "bg-panel text-chimera") : ""
                   }`}
@@ -403,7 +411,7 @@ export function ImportPanel({
       </section>
 
       {/* Google Sheet sync */}
-      <section className="rounded-2xl border border-border bg-panel p-5">
+      <section className="card">
         <div className="mb-1 flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-panel-2 text-hydra">
             <Sheet size={20} />

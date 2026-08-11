@@ -7,30 +7,40 @@ import { SectionTitle } from "./SectionTitle";
 
 export function DonutSummary({ summary }: { summary: KeyUsageSummary }) {
   const data = [
-    { name: "Hydra", value: summary.hydraAvgKeys, color: "var(--color-hydra)" },
-    { name: "Chimera", value: summary.chimeraAvgKeys, color: "var(--color-chimera)" },
+    { name: "Hydra", value: summary.hydraAvgKeys, fill: "url(#grad-hydra)" },
+    { name: "Chimera", value: summary.chimeraAvgKeys, fill: "url(#grad-chimera)" },
   ];
 
   return (
-    <section className="rounded-2xl border border-border bg-panel p-5">
+    <section className="card">
       <SectionTitle>Key Usage Summary</SectionTitle>
 
       <div className="mt-3 flex items-center gap-5">
         <div className="h-36 w-36 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
+              <defs>
+                <linearGradient id="grad-hydra" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-hydra-bright)" />
+                  <stop offset="100%" stopColor="var(--color-hydra)" />
+                </linearGradient>
+                <linearGradient id="grad-chimera" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-chimera-bright)" />
+                  <stop offset="100%" stopColor="var(--color-chimera)" />
+                </linearGradient>
+              </defs>
               <Pie
                 data={data}
                 dataKey="value"
-                innerRadius={44}
-                outerRadius={64}
+                innerRadius="62%"
+                outerRadius="92%"
                 startAngle={90}
                 endAngle={-270}
                 paddingAngle={2}
                 stroke="none"
               >
                 {data.map((d) => (
-                  <Cell key={d.name} fill={d.color} />
+                  <Cell key={d.name} fill={d.fill} />
                 ))}
               </Pie>
             </PieChart>

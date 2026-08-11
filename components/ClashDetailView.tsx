@@ -61,15 +61,19 @@ export async function ClashDetailView({
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <TopBar title={title} weekNumbers={weekNumbers} weekRanges={weekRanges} currentWeek={selectedWeek} exportData={exportData} />
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <div className="xl:col-span-2">
+    <div className="flex flex-col gap-6 p-6 xl:h-screen xl:gap-5 xl:overflow-hidden">
+      <div className="xl:shrink-0">
+        <TopBar title={title} weekNumbers={weekNumbers} weekRanges={weekRanges} currentWeek={selectedWeek} exportData={exportData} />
+      </div>
+      <div className="grid grid-cols-1 gap-5 xl:shrink-0 xl:grid-cols-3">
+        <div className="xl:col-span-2 xl:h-full">
           <ClashCard stats={overview} dateRange={dateRange} />
         </div>
         <WeeklyBarChart timeline={timeline} clashType={clashType} currentWeek={selectedWeek} />
       </div>
-      <ClashTable rows={rows} clashType={clashType} />
+      <div className="xl:flex xl:min-h-0 xl:flex-1">
+        <ClashTable rows={rows} clashType={clashType} />
+      </div>
     </div>
   );
 }

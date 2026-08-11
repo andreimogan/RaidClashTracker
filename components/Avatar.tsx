@@ -37,21 +37,32 @@ export function Avatar({
   size = 32,
   badge,
   ring = "none",
+  src,
 }: {
   name: string;
   size?: number;
   badge?: number | string;
   ring?: keyof typeof RINGS;
+  src?: string | null;
 }) {
   const grad = GRADIENTS[hash(name) % GRADIENTS.length];
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <div
-        className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br ${grad} font-semibold text-white ${RINGS[ring]}`}
-        style={{ fontSize: size * 0.42 }}
-      >
-        {initials(name)}
-      </div>
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={name}
+          className={`h-full w-full rounded-lg object-cover ${RINGS[ring]}`}
+        />
+      ) : (
+        <div
+          className={`flex h-full w-full items-center justify-center rounded-lg bg-gradient-to-br ${grad} font-semibold text-white ${RINGS[ring]}`}
+          style={{ fontSize: size * 0.42 }}
+        >
+          {initials(name)}
+        </div>
+      )}
       {badge !== undefined && (
         <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-sm bg-bg/90 px-1 text-[9px] font-semibold text-gold">
           {badge}

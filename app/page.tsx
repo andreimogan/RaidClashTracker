@@ -80,17 +80,19 @@ export default async function DashboardPage({
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <TopBar
-        title="Overview"
-        weekNumbers={weekNumbers}
-        weekRanges={weekRanges}
-        currentWeek={selectedWeek}
-        exportData={exportData}
-      />
+    <div className="flex flex-col gap-6 p-6 xl:h-screen xl:gap-5 xl:overflow-hidden">
+      <div className="xl:shrink-0">
+        <TopBar
+          title="Overview"
+          weekNumbers={weekNumbers}
+          weekRanges={weekRanges}
+          currentWeek={selectedWeek}
+          exportData={exportData}
+        />
+      </div>
 
       {weeks.length === 0 && (
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-panel p-5 text-sm text-muted">
+        <div className="card flex items-center gap-3 text-sm text-muted xl:shrink-0">
           <Inbox size={20} className="text-gold" />
           <span>
             No clash data yet — add a week from{" "}
@@ -102,15 +104,17 @@ export default async function DashboardPage({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 xl:shrink-0 xl:grid-cols-2">
         <ClashCard stats={hydra} dateRange={clashRange("hydra")} />
         <ClashCard stats={chimera} dateRange={clashRange("chimera")} />
       </div>
 
-      <PerformanceTable data={perf} totals={totals} weekLabel={weekLabel} allWeeksLabel={allWeeksLabel} />
+      <div className="xl:flex xl:min-h-0 xl:flex-1">
+        <PerformanceTable data={perf} totals={totals} weekLabel={weekLabel} allWeeksLabel={allWeeksLabel} />
+      </div>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <div className="xl:col-span-2">
+      <div className="grid grid-cols-1 gap-5 xl:shrink-0 xl:grid-cols-3">
+        <div className="xl:col-span-2 xl:h-full">
           <TimelineStrip data={timeline} currentWeek={selectedWeek} />
         </div>
         <DonutSummary summary={keyUsage} />

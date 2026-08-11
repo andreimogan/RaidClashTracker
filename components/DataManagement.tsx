@@ -137,7 +137,7 @@ export function DataManagement({ active }: { active: DbEnv }) {
   const activeLabel = active === "production" ? "Production" : "Test";
 
   return (
-    <section className="rounded-2xl border border-border bg-panel p-5">
+    <section className="card">
       <SectionTitle className="mb-1">Data Management</SectionTitle>
       <p className="mb-4 text-sm text-muted">
         Back up your data to a file, restore it later, or wipe a database to start over. Backup and

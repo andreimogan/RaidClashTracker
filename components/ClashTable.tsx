@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { PerformanceRow, ClashType } from "@/lib/types";
 import { formatDamage, formatKeys } from "@/lib/format";
-import { Avatar } from "./Avatar";
+import { MemberCell } from "./MemberCell";
 import { TrendBadge } from "./TrendBadge";
 import { SectionTitle } from "./SectionTitle";
 
@@ -54,10 +54,10 @@ export function ClashTable({
     pct >= 90 ? "text-up" : pct >= 60 ? "text-muted" : "text-down";
 
   return (
-    <section className="rounded-2xl border border-border bg-panel">
-      <div className="flex items-center justify-between p-5 pb-3">
+    <section className="card-flush xl:flex xl:h-full xl:w-full xl:flex-col xl:overflow-hidden">
+      <div className="flex items-center justify-between p-5 pb-3 xl:shrink-0">
         <SectionTitle tone={clashType}>Player Breakdown</SectionTitle>
-        <div className="flex w-64 items-center gap-2 rounded-lg border border-border bg-panel-2 px-3 py-2">
+        <div className="flex w-64 items-center gap-2 inset px-3 py-2">
           <Search size={15} className="text-muted" />
           <input
             value={query}
@@ -68,9 +68,9 @@ export function ClashTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
         <table className="w-full min-w-[680px] text-sm">
-          <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
+          <thead className="text-left text-[11px] uppercase tracking-wider text-muted xl:sticky xl:top-0 xl:z-10 xl:bg-panel">
             <tr className="border-b border-border">
               <th className="px-3 py-2 pl-5 font-medium">#</th>
               <th className="px-3 py-2 font-medium">Player</th>
@@ -94,15 +94,7 @@ export function ClashTable({
               <tr key={r.member.id} className="border-b border-border-soft last:border-0 hover:bg-panel-2/50">
                 <td className="px-3 py-2.5 pl-5 text-muted tabular-nums">{i + 1}</td>
                 <td className="px-3 py-2.5">
-                  <div className="flex items-center gap-3">
-                    <Avatar name={r.member.inGameName} size={32} />
-                    <span className="font-medium">{r.member.inGameName}</span>
-                    {!r.member.isActive && (
-                      <span className="rounded-full border border-border bg-panel-2 px-2 py-0.5 text-xs font-medium text-faint">
-                        Former
-                      </span>
-                    )}
-                  </div>
+                  <MemberCell member={r.member} />
                 </td>
                 <td className="px-3 py-2.5 tabular-nums">{formatKeys(r.keysThisWeek)}</td>
                 <td className="px-3 py-2.5 tabular-nums">{formatDamage(r.damageThisWeek)}</td>

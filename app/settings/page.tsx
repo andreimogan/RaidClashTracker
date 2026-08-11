@@ -37,29 +37,29 @@ export default async function SettingsPage() {
 
   const overview = (
     <div className="flex flex-col gap-6">
-      <section className="rounded-2xl border border-border bg-panel p-5">
+      <section className="card">
         <SectionTitle className="mb-4">Clan</SectionTitle>
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-border bg-panel-2 p-4">
+          <div className="inset rounded-xl p-4">
             <div className="flex items-center gap-2 text-muted">
               <Users size={16} /> <span className="text-sm">Current Roster</span>
             </div>
             <div className="mt-1 text-2xl font-semibold">{currentRoster} / {CLAN_CAP}</div>
           </div>
-          <div className="rounded-xl border border-border bg-panel-2 p-4">
+          <div className="inset rounded-xl p-4">
             <div className="flex items-center gap-2 text-muted">
               <UsersRound size={16} /> <span className="text-sm">Tracked Members</span>
             </div>
             <div className="mt-1 text-2xl font-semibold">{trackedMembers}</div>
             <div className="text-xs text-muted">all-time, incl. former</div>
           </div>
-          <div className="rounded-xl border border-border bg-panel-2 p-4">
+          <div className="inset rounded-xl p-4">
             <div className="flex items-center gap-2 text-muted">
               <Swords size={16} /> <span className="text-sm">Tracked Clashes</span>
             </div>
             <div className="mt-1 text-2xl font-semibold">Hydra · Chimera</div>
           </div>
-          <div className="rounded-xl border border-border bg-panel-2 p-4">
+          <div className="inset rounded-xl p-4">
             <div className="flex items-center gap-2 text-muted">
               <Database size={16} /> <span className="text-sm">Weeks Tracked</span>
             </div>
@@ -68,7 +68,7 @@ export default async function SettingsPage() {
         </dl>
       </section>
 
-      <section className="rounded-2xl border border-border bg-panel p-5">
+      <section className="card">
         <SectionTitle className="mb-4">Data Source</SectionTitle>
         {source === "sqlite" ? (
           <div className="flex items-start gap-3 rounded-xl border border-hydra/30 bg-hydra/5 p-4">
@@ -105,7 +105,7 @@ export default async function SettingsPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-border bg-panel p-5">
+      <section className="card">
         <SectionTitle className="mb-2">Updating the Data</SectionTitle>
         <ol className="ml-5 list-decimal space-y-1.5 text-sm text-muted">
           <li>One-time: <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:init</code> creates the local database (skip if it&apos;s already set up).</li>

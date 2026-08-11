@@ -54,7 +54,7 @@ export function DatabaseSwitcher({
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-panel p-5">
+    <section className="card">
       <SectionTitle>Database</SectionTitle>
       <p className="mt-1 text-sm text-muted">
         Switch between your live <span className="text-text">Production</span> data and an

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { MemberTotalsRow } from "@/lib/types";
 import { formatDamage, formatKeys } from "@/lib/format";
-import { Avatar } from "./Avatar";
+import { MemberCell } from "./MemberCell";
 
 // Per-clash, all-weeks sort keys.
 type SortKey = "hKeys" | "hAvg" | "hPart" | "hDmg" | "cKeys" | "cAvg" | "cPart" | "cDmg";
@@ -74,9 +74,9 @@ export function TotalPerformanceTable({
   }, [rows, sortKey, dir]);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
       <table className="w-full min-w-[920px] text-sm">
-        <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
+        <thead className="text-left text-[11px] uppercase tracking-wider text-muted xl:sticky xl:top-0 xl:z-10 xl:bg-panel">
           <tr className="border-b border-border">
             <th rowSpan={2} className="px-3 py-2 pl-5 align-bottom font-medium">#</th>
             <th rowSpan={2} className="px-3 py-2 align-bottom font-medium">Player</th>
@@ -103,15 +103,7 @@ export function TotalPerformanceTable({
             <tr key={r.member.id} className="border-b border-border-soft last:border-0 hover:bg-panel-2/50">
               <td className="px-3 py-2.5 pl-5 text-muted tabular-nums">{i + 1}</td>
               <td className="px-3 py-2.5">
-                <div className="flex items-center gap-3">
-                  <Avatar name={r.member.inGameName} size={32} />
-                  <span className="font-medium">{r.member.inGameName}</span>
-                  {!r.member.isActive && (
-                    <span className="rounded-full border border-border bg-panel-2 px-2 py-0.5 text-xs font-medium text-faint">
-                      Former
-                    </span>
-                  )}
-                </div>
+                <MemberCell member={r.member} />
               </td>
               <td className="border-l border-border px-3 py-2.5 tabular-nums">{formatKeys(r.hydra.totalKeys)}</td>
               <td className="px-3 py-2.5 tabular-nums text-muted">{formatKeys(r.hydra.avgKeys)}</td>

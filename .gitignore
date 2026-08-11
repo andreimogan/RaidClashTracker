@@ -41,6 +41,15 @@ yarn-error.log*
 /data/clash-test.db-*
 /data/active-db.json
 
+# design reference — heavy source material stays local; the card icons and
+# member avatar PNGs are committed
+Assets UI/gestal.gg_raid_screenshot_*.png
+Assets UI/**/*.psd
+
+# python bytecode (the legacy .py hook is kept but unused; settings.json runs the .mjs)
+__pycache__/
+*.pyc
+
 # vercel
 .vercel
 

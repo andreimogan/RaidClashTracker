@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import type { ClashType, MemberTotalsRow, PerformanceRow } from "@/lib/types";
 import type { PerfScope } from "@/lib/compute";
 import { formatDamage, formatKeys } from "@/lib/format";
-import { Avatar } from "./Avatar";
+import { MemberCell } from "./MemberCell";
 import { TotalPerformanceTable } from "./TotalPerformanceTable";
 import { SectionTitle } from "./SectionTitle";
 
@@ -13,7 +13,6 @@ type SortKey =
   | "keysThisWeek"
   | "keysAverage"
   | "damageThisWeek"
-  | "damageAverage"
   | "avgDamagePerKey"
   | "participationPct";
 
@@ -113,8 +112,8 @@ export function PerformanceTable({
     pct >= 90 ? "text-up" : pct >= 60 ? "text-muted" : "text-down";
 
   return (
-    <section className="rounded-2xl border border-border bg-panel">
-      <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
+    <section className="card-flush xl:flex xl:h-full xl:w-full xl:flex-col xl:overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3 xl:shrink-0">
         <div>
           <SectionTitle>Clan Performance</SectionTitle>
           <p className="mt-1 text-sm text-muted">
@@ -126,7 +125,7 @@ export function PerformanceTable({
             <button
               key={t.key}
               onClick={() => setScope(t.key)}
-              className={`pill ${scope === t.key ? `bg-panel ${t.accent}` : ""}`}
+              className={`pill ${scope === t.key ? `bg-panel ${t.accent} shadow-[0_0_16px_-6px_currentColor]` : ""}`}
             >
               {t.label}
             </button>
@@ -134,8 +133,8 @@ export function PerformanceTable({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-3">
-        <div className="flex w-72 items-center gap-2 rounded-lg border border-border bg-panel-2 px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-3 xl:shrink-0">
+        <div className="flex w-72 items-center gap-2 inset px-3 py-2">
           <Search size={15} className="text-muted" />
           <input
             value={query}
@@ -162,16 +161,15 @@ export function PerformanceTable({
       {isTotal ? (
         <TotalPerformanceTable rows={totalRows} emptyQuery={query} />
       ) : (
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
         <table className="w-full min-w-[860px] text-sm">
-          <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
+          <thead className="text-left text-[11px] uppercase tracking-wider text-muted xl:sticky xl:top-0 xl:z-10 xl:bg-panel">
             <tr className="border-b border-border">
               <th className="px-3 py-2 pl-5 font-medium">#</th>
               <th className="px-3 py-2 font-medium">Player</th>
               <HeaderCell label="Keys (Week)" sortKey="keysThisWeek" active={sortKey === "keysThisWeek"} dir={dir} onSort={onSort} />
               <HeaderCell label="Keys (Avg)" sortKey="keysAverage" active={sortKey === "keysAverage"} dir={dir} onSort={onSort} />
               <HeaderCell label="Damage (Week)" sortKey="damageThisWeek" active={sortKey === "damageThisWeek"} dir={dir} onSort={onSort} />
-              <HeaderCell label="Damage (Avg)" sortKey="damageAverage" active={sortKey === "damageAverage"} dir={dir} onSort={onSort} />
               <HeaderCell label="Avg Dmg / Key" sortKey="avgDamagePerKey" active={sortKey === "avgDamagePerKey"} dir={dir} onSort={onSort} />
               <HeaderCell label="Participation" sortKey="participationPct" active={sortKey === "participationPct"} dir={dir} onSort={onSort} className="pr-5" />
             </tr>
@@ -184,20 +182,11 @@ export function PerformanceTable({
               >
                 <td className="px-3 py-2.5 pl-5 text-muted tabular-nums">{i + 1}</td>
                 <td className="px-3 py-2.5">
-                  <div className="flex items-center gap-3">
-                    <Avatar name={r.member.inGameName} size={32} />
-                    <span className="font-medium">{r.member.inGameName}</span>
-                    {!r.member.isActive && (
-                      <span className="rounded-full border border-border bg-panel-2 px-2 py-0.5 text-xs font-medium text-faint">
-                        Former
-                      </span>
-                    )}
-                  </div>
+                  <MemberCell member={r.member} />
                 </td>
                 <td className="px-3 py-2.5 tabular-nums">{formatKeys(r.keysThisWeek)}</td>
                 <td className="px-3 py-2.5 tabular-nums text-muted">{formatKeys(r.keysAverage)}</td>
                 <td className="px-3 py-2.5 tabular-nums">{formatDamage(r.damageThisWeek)}</td>
-                <td className="px-3 py-2.5 tabular-nums text-muted">{formatDamage(r.damageAverage)}</td>
                 <td className="px-3 py-2.5 tabular-nums">{formatDamage(r.avgDamagePerKey)}</td>
                 <td className={`px-3 py-2.5 pr-5 tabular-nums ${participationColor(r.participationPct)}`}>
                   {r.participationPct.toFixed(0)}%
@@ -206,7 +195,7 @@ export function PerformanceTable({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-5 py-10 text-center text-muted">
+                <td colSpan={7} className="px-5 py-10 text-center text-muted">
                   No players match “{query}”.
                 </td>
               </tr>

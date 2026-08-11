@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Flame, Cat } from "lucide-react";
-import { loadDataset } from "@/lib/data";
+import { loadDataset, getDataSource } from "@/lib/data";
 import { getMemberProfile } from "@/lib/compute";
 import type { MemberClashStat } from "@/lib/types";
-import { Avatar } from "@/components/Avatar";
+import { AvatarEditor } from "@/components/AvatarEditor";
 import { TrendBadge } from "@/components/TrendBadge";
 import { ExportButton, type ExportData } from "@/components/ExportButton";
 import { SectionTitle } from "@/components/SectionTitle";
-import { formatDamage, formatKeys, formatDateRange } from "@/lib/format";
+import { MemberHistoryTable, type HistoryRow } from "@/components/MemberHistoryTable";
+import { formatDamage, formatKeys } from "@/lib/format";
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl border border-border bg-panel-2 p-4">
+    <div className="inset rounded-xl p-4">
       <div className="stat-label">{label}</div>
       <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
       {sub && <div className="text-xs text-muted">{sub}</div>}
@@ -34,7 +35,7 @@ function ClashBreakdown({ stat }: { stat: MemberClashStat }) {
     { label: "Participation", value: `${stat.participationPct.toFixed(0)}%` },
   ];
   return (
-    <section className="rounded-2xl border border-border bg-panel p-5">
+    <section className="card">
       <div className="flex items-center gap-2.5">
         <span className={`grid h-9 w-9 place-items-center rounded-lg bg-panel-2 ${t.text}`}>
           <t.Icon size={20} />
@@ -79,11 +80,48 @@ export default async function MemberDetailPage({
   const profile = getMemberProfile(ds, id);
   if (!profile) notFound();
 
+  // Demo data (bundled seed) is read-only — editing needs the local database.
+  const readOnly = (await getDataSource()) !== "sqlite";
+
   const { member, isActive, firstWeek, lastWeek, weeksPresent, weeksActive, bestWeek, total } =
     profile;
 
-  // Newest week first in the table.
-  const history = [...profile.history].reverse();
+  // All tracked weeks (newest first), merged with the member's history — weeks
+  // without an entry become "absent" rows so they can be filled in via edit.
+  const historyByWeekId = new Map(profile.history.map((r) => [r.week.id, r]));
+  const historyRows: HistoryRow[] = [...ds.weeks]
+    .sort((a, b) => b.weekNumber - a.weekNumber)
+    .map((week) => {
+      const w = {
+        id: week.id,
+        weekNumber: week.weekNumber,
+        startDate: week.startDate,
+        endDate: week.endDate,
+      };
+      const h = historyByWeekId.get(week.id);
+      if (!h) {
+        return {
+          week: w,
+          present: false,
+          hydra: { keys: 0, damage: 0 },
+          chimera: { keys: 0, damage: 0 },
+          totalKeys: 0,
+          totalDamage: 0,
+          participationPct: null,
+          trendPct: null,
+        };
+      }
+      return {
+        week: w,
+        present: true,
+        hydra: { keys: h.hydra.keys, damage: h.hydra.damage },
+        chimera: { keys: h.chimera.keys, damage: h.chimera.damage },
+        totalKeys: h.totalKeys,
+        totalDamage: h.totalDamage,
+        participationPct: h.participationPct,
+        trendPct: h.trendPct,
+      };
+    });
 
   const tracked =
     firstWeek && lastWeek
@@ -107,19 +145,24 @@ export default async function MemberDetailPage({
       "Participation %",
       "Trend %",
     ],
-    rows: history.map((r) => [
-      r.week.weekNumber,
-      r.week.startDate,
-      r.week.endDate,
-      r.hydra.keys,
-      r.hydra.damage,
-      r.chimera.keys,
-      r.chimera.damage,
-      r.totalKeys,
-      r.totalDamage,
-      r.participationPct.toFixed(0),
-      r.trendPct.toFixed(0),
-    ]),
+    // Same merged rows as the table — absent weeks emit empty stat columns.
+    rows: historyRows.map((r) =>
+      r.present
+        ? [
+            r.week.weekNumber,
+            r.week.startDate,
+            r.week.endDate,
+            r.hydra.keys,
+            r.hydra.damage,
+            r.chimera.keys,
+            r.chimera.damage,
+            r.totalKeys,
+            r.totalDamage,
+            (r.participationPct ?? 0).toFixed(0),
+            (r.trendPct ?? 0).toFixed(0),
+          ]
+        : [r.week.weekNumber, r.week.startDate, r.week.endDate, "", "", "", "", "", "", "", ""],
+    ),
   };
 
   return (
@@ -132,10 +175,11 @@ export default async function MemberDetailPage({
       </Link>
 
       {/* Identity header */}
-      <section className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-panel p-5">
-        <Avatar
+      <section className="flex flex-wrap items-center gap-4 card">
+        <AvatarEditor
+          memberId={member.id}
           name={member.inGameName}
-          size={56}
+          avatarUrl={member.avatarUrl}
           ring={isActive ? "hydra" : "none"}
         />
         <div>
@@ -161,7 +205,7 @@ export default async function MemberDetailPage({
       </section>
 
       {/* Lifetime summary */}
-      <section className="rounded-2xl border border-border bg-panel p-5">
+      <section className="card">
         <SectionTitle className="mb-4">Lifetime</SectionTitle>
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
@@ -189,68 +233,15 @@ export default async function MemberDetailPage({
         <ClashBreakdown stat={profile.chimera} />
       </div>
 
-      {/* Week-by-week history */}
-      <section className="rounded-2xl border border-border bg-panel">
-        <div className="flex items-center justify-between p-5 pb-3">
-          <SectionTitle>Week-by-Week History</SectionTitle>
-          <span className="text-sm text-muted">{weeksPresent} weeks</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-sm">
-            <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
-              <tr className="border-b border-border">
-                <th className="px-3 py-2 pl-5 font-medium">Week</th>
-                <th className="px-3 py-2 font-medium text-hydra">Hydra Keys</th>
-                <th className="px-3 py-2 font-medium text-hydra">Hydra Dmg</th>
-                <th className="px-3 py-2 font-medium text-chimera">Chimera Keys</th>
-                <th className="px-3 py-2 font-medium text-chimera">Chimera Dmg</th>
-                <th className="px-3 py-2 font-medium">Total Keys</th>
-                <th className="px-3 py-2 font-medium">Total Dmg</th>
-                <th className="px-3 py-2 font-medium">Participation</th>
-                <th className="px-3 py-2 pr-5 font-medium">Trend</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((r) => (
-                <tr
-                  key={r.week.id}
-                  className="border-b border-border-soft last:border-0 hover:bg-panel-2/50"
-                >
-                  <td className="px-3 py-2.5 pl-5">
-                    <div className="font-medium">W{r.week.weekNumber}</div>
-                    <div className="text-xs text-muted">
-                      {formatDateRange(r.week.startDate, r.week.endDate)}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums">{r.hydra.keys}</td>
-                  <td className="px-3 py-2.5 tabular-nums">
-                    {r.hydra.damage ? formatDamage(r.hydra.damage) : "—"}
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums">{r.chimera.keys}</td>
-                  <td className="px-3 py-2.5 tabular-nums">
-                    {r.chimera.damage ? formatDamage(r.chimera.damage) : "—"}
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums">{formatKeys(r.totalKeys)}</td>
-                  <td className="px-3 py-2.5 tabular-nums">
-                    {r.totalDamage ? formatDamage(r.totalDamage) : "—"}
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums">{r.participationPct.toFixed(0)}%</td>
-                  <td className="px-3 py-2.5 pr-5 tabular-nums">
-                    <TrendBadge value={r.trendPct} />
-                  </td>
-                </tr>
-              ))}
-              {history.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="px-5 py-10 text-center text-muted">
-                    No tracked weeks for this member yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* Week-by-week history (all tracked weeks; editable on a local DB) */}
+      <MemberHistoryTable
+        rows={historyRows}
+        memberId={member.id}
+        memberName={member.inGameName}
+        weeksPresent={weeksPresent}
+        totalWeeks={ds.weeks.length}
+        readOnly={readOnly}
+      />
     </div>
   );
 }

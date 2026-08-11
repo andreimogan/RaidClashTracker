@@ -42,7 +42,7 @@ export default async function TimelinePage({
         <WeeklyBarChart timeline={timeline} clashType="chimera" currentWeek={selectedWeek} />
       </div>
 
-      <section className="rounded-2xl border border-border bg-panel">
+      <section className="card-flush">
         <div className="p-5 pb-3"><SectionTitle>Weekly Totals</SectionTitle></div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">

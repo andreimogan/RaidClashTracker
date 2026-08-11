@@ -13,8 +13,15 @@
   /* Clash accents — gestal-aligned: Hydra warm amber-bronze, Chimera steel-blue */
   --color-hydra: #dca84f;
   --color-hydra-dim: #8a6a33;
+  --color-hydra-bright: #ecc079;
   --color-chimera: #5aa2d6;
   --color-chimera-dim: #356488;
+  --color-chimera-bright: #84c0e8;
+
+  /* Surface gradients — two near-identical dark tones around panel (#0c111c). */
+  --grad-card: linear-gradient(180deg, #0e1524, #0a0e19);
+  --grad-inset: linear-gradient(180deg, #0b1120, #080c15);
+  --edge-hi: inset 0 1px 0 rgb(255 255 255 / 0.05);
 
   --color-gold: #d6b15f;
   --color-gold-bright: #ecc878;
@@ -41,16 +48,38 @@ body {
   color: var(--color-text);
   font-family: var(--font-sans);
   background-color: var(--color-bg);
-  /* Subtle ambient glow + faint concentric rings, gestal-style */
+  /* Faint cool ambient glow toward the top, fading darker at the bottom — reads as lighting. */
   background-image:
-    radial-gradient(900px 520px at 50% -8%, rgba(214, 177, 95, 0.06), transparent 70%),
-    radial-gradient(760px 520px at 100% -4%, rgba(90, 162, 214, 0.05), transparent 70%),
-    repeating-radial-gradient(circle at 88% 18%, rgba(138, 152, 173, 0.04) 0 1px, transparent 1px 64px);
+    radial-gradient(110% 75% at 50% 0%, rgb(38 66 98 / 0.12), transparent 60%),
+    linear-gradient(180deg, transparent 55%, rgb(0 0 0 / 0.25));
   background-attachment: fixed;
 }
 
 /* ---- Reusable gestal-style primitives ---- */
 @layer components {
+  /* Surfaces — subtle top-lit vertical gradient + hairline border + glass top edge. */
+  .card {
+    @apply rounded-2xl border border-border p-5;
+    background: var(--grad-card);
+    box-shadow: var(--edge-hi);
+  }
+  .card-flush {
+    @apply rounded-2xl border border-border;
+    background: var(--grad-card);
+    box-shadow: var(--edge-hi);
+  }
+  /* Recessed metric/field container — one shade darker than the card. */
+  .inset {
+    @apply rounded-lg border border-border;
+    background: var(--grad-inset);
+  }
+  /* Accent fills — data viz only: brighter → deeper along the same hue. */
+  .fill-hydra {
+    background-image: linear-gradient(90deg, var(--color-hydra-bright), var(--color-hydra));
+  }
+  .fill-chimera {
+    background-image: linear-gradient(90deg, var(--color-chimera-bright), var(--color-chimera));
+  }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-md border border-border bg-panel-2/50
       px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted transition-colors
