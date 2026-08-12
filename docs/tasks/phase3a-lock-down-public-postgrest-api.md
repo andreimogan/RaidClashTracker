@@ -80,7 +80,7 @@ Four levers, belt-and-braces **because they fail in opposite directions**:
 - **agent:** `db-migration-specialist`
 - **state:** done · **claimed_by:** `db-migration-specialist` (Phase 3a run, 2026-08-12)
 - **owns:** `supabase/migrations/0002_lock_down_public_api.sql` *(new)* — **nothing else**
-- **depends_on:** none · **docs_touched:** none *(doc updates are Phase 3b's t5; see the doc-sync note)*
+- **depends_on:** none · **docs_touched:** none *(doc updates are Phase 3b's t4; see the doc-sync note)*
 - **done_when:**
   1. **Before-state recorded and pasted into the changelist, before any DDL:** `pg_class.relrowsecurity` + `relforcerowsecurity` for all 5 objects · `select count(*) from pg_policies where schemaname='public'` · the `anon`/`authenticated` rows of `information_schema.role_table_grants` · **and** `select current_user, session_user`, `select rolbypassrls, rolsuper from pg_roles where rolname = current_user`, `select tablename, tableowner from pg_tables where schemaname='public'`. **State which role `DATABASE_URL` connects as and whether it bypasses RLS — measured, not reasoned.**
   2. The migration contains the four SEAM levers and **only** those, plus a header comment recording what each buys and **why `force row level security` and `revoke usage on schema public` are deliberately absent**. **Zero `create policy` statements.**
@@ -94,12 +94,12 @@ Four levers, belt-and-braces **because they fail in opposite directions**:
 
 <!-- doc-sync note for flow-reviewer: t1 carries empty docs_touched by design. The invariants
      below belong in .claude/rules/database.md, but they must be written from t1's MEASURED
-     numbers, and the same rule file is rewritten by Phase 3b's t5 alongside the auth invariants.
+     numbers, and the same rule file is rewritten by Phase 3b's t4 alongside the auth invariants.
      Splitting that file across two orders would mean writing it twice and risking contradiction,
-     so the doc update is deliberately deferred to Phase 3b's t5, which is gated on it.
+     so the doc update is deliberately deferred to Phase 3b's t4, which is gated on it.
      This is a recorded deferral, not a doc-sync miss. -->
 
-### Deferred to Phase 3b's t5 — required content of `.claude/rules/database.md`
+### Deferred to Phase 3b's t4 — required content of `.claude/rules/database.md`
 
 Raised as **HIGH-1** by `flow-reviewer`: the original deferral note said "the RLS/grants invariant", which would have let t5 satisfy the gate with a single bullet while **three of the four measured invariants were lost.** All four are enumerated here so that cannot happen. t5's `done_when` must require each one, written from the measurements in t1's changelist:
 

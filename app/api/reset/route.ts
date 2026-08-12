@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { resetDatabase } from "@/lib/backup";
 
-// Wipe ALL data from the database. Takes no body. Local, unauthenticated (gate
-// before any public deploy).
+// Wipe ALL data from the database. Takes no body. Admin-only — anonymous and
+// signed-in-non-admin callers both get the frozen 401 from requireAdmin().
 //
 // It no longer creates the tables first: schema changes are numbered migrations
 // applied by `npm run db:migrate`, and a reset against a database that was never
@@ -11,6 +12,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   try {
     await resetDatabase();
     return NextResponse.json({ ok: true });

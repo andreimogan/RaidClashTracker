@@ -34,7 +34,44 @@ function fileToSquareDataUrl(file: File): Promise<string> {
   });
 }
 
-export function AvatarEditor({
+// Why the camera / remove buttons are gone. Same two reasons, two different
+// fixes, as the rest of the write surface.
+type ReadOnlyReason = "anonymous" | "demo" | null;
+
+type Ring = "gold" | "hydra" | "chimera" | "none";
+
+type AvatarEditorProps = {
+  memberId: string;
+  name: string;
+  avatarUrl?: string | null;
+  ring?: Ring;
+  readOnly: boolean;
+  readOnlyReason: ReadOnlyReason;
+};
+
+/**
+ * The member avatar, editable only for the signed-in clan admin on a live
+ * database. Splits before AvatarUploader's hooks so nothing sits behind a
+ * conditional hook call — and so the file picker, the POST and the pending state
+ * do not exist at all for a reader who could never save.
+ */
+export function AvatarEditor({ readOnly, readOnlyReason, ...props }: AvatarEditorProps) {
+  if (readOnly) {
+    return (
+      <div className="flex items-center gap-3">
+        <Avatar name={props.name} size={56} ring={props.ring ?? "none"} src={props.avatarUrl} />
+        <span className="max-w-[11rem] text-xs text-muted">
+          {readOnlyReason === "demo"
+            ? "Sample-data photo — connect the clan database to change it"
+            : "Sign in as the clan admin to change this photo"}
+        </span>
+      </div>
+    );
+  }
+  return <AvatarUploader {...props} />;
+}
+
+function AvatarUploader({
   memberId,
   name,
   avatarUrl,
@@ -43,7 +80,7 @@ export function AvatarEditor({
   memberId: string;
   name: string;
   avatarUrl?: string | null;
-  ring?: "gold" | "hydra" | "chimera" | "none";
+  ring?: Ring;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);

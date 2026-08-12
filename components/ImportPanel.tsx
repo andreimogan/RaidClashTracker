@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileJson, Upload, CheckCircle2, AlertTriangle } from "lucide-react";
+import { FileJson, Upload, CheckCircle2, AlertTriangle, Lock } from "lucide-react";
 import { normalizeFlatResults, type ClashType } from "@/lib/import";
 import { formatDamage, formatDateRange } from "@/lib/format";
 import { clashWindow, weekWednesday, type CurrentWeek } from "@/lib/week";
@@ -47,7 +47,66 @@ function ErrorBanner({ message }: { message: string }) {
 
 const RECENT_WEEKS = 12;
 
-export function ImportPanel({
+// Why the import form is gone. Two different problems, two different fixes, so
+// two different sentences — "connect the clan database" is not the reason an
+// anonymous visitor can't import into a database that is already connected.
+type ReadOnlyReason = "anonymous" | "demo" | null;
+
+type ImportPanelProps = {
+  weeks: WeekOpt[];
+  currentWeek: CurrentWeek;
+  existingData: Record<number, { hydra: number; chimera: number }>;
+  readOnly: boolean;
+  readOnlyReason: ReadOnlyReason;
+};
+
+/**
+ * Import tab. Splits on `readOnly` before ImportForm's hooks run, so the form's
+ * state never sits behind a conditional hook call.
+ */
+export function ImportPanel({ readOnly, readOnlyReason, ...props }: ImportPanelProps) {
+  if (readOnly) return <ImportLocked reason={readOnlyReason} />;
+  return <ImportForm {...props} />;
+}
+
+function ImportLocked({ reason }: { reason: ReadOnlyReason }) {
+  return (
+    <section className="card">
+      <div className="mb-1 flex items-center gap-2.5">
+        <span className="grid h-9 w-9 place-items-center rounded-lg bg-panel-2 text-chimera">
+          <FileJson size={20} />
+        </span>
+        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-gold">
+          JSON Import
+        </h2>
+      </div>
+      <div className="mt-4 flex items-start gap-3 rounded-xl border border-border bg-panel-2/40 p-4">
+        <Lock className="mt-0.5 shrink-0 text-muted" size={18} />
+        {reason === "demo" ? (
+          <p className="text-sm text-muted">
+            This dashboard is showing bundled sample data, so there is nowhere to import to.
+            Connect the clan database — put your{" "}
+            <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">DATABASE_URL</code> in{" "}
+            <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">.env.local</code> and run{" "}
+            <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:migrate</code>{" "}
+            — and the import form appears here.
+          </p>
+        ) : (
+          <p className="text-sm text-muted">
+            Importing writes a whole clash into the clan database, so it needs the clan admin
+            account.{" "}
+            <Link href="/login" className="text-text underline underline-offset-2 hover:text-gold">
+              Sign in
+            </Link>{" "}
+            to import. Every stat on this dashboard stays readable while signed out.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ImportForm({
   weeks,
   currentWeek,
   existingData,

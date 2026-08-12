@@ -8,6 +8,7 @@ start it; the data lives in your own Supabase project.
 - **Framework:** Next.js (App Router, TypeScript) + Tailwind CSS + Recharts
 - **Database:** **Supabase Postgres**, reached over the pooled connection URI in `DATABASE_URL`
 - **Data in:** JSON upload/paste via **Clan Settings → Import data**, a CSV file from the CLI, or per-member week edits on a member's page
+- **Who can change it:** anyone can *read* every page; only the clan admin, signed in at `/login`, can change anything
 - **Run:** `npm run dev` whenever you want to see the stats
 
 The app runs with **bundled demo data out of the box** — with no `DATABASE_URL` set you can
@@ -36,9 +37,37 @@ npm run import -- data/sample-import.csv
 npm run dev                         # app now reads from Supabase
 ```
 
-`DATABASE_URL` is the only required setting — the **pooled** (`:6543`) `postgresql://` URI
-from your Supabase project's connection settings. `npm run db:migrate` is safe to re-run.
-`.env.local` is gitignored — keep it that way, it holds your database password.
+`DATABASE_URL` is the only setting needed to **read** your own data — the **pooled**
+(`:6543`) `postgresql://` URI from your Supabase project's connection settings.
+`npm run db:migrate` is safe to re-run. To **change** data you also need the three sign-in
+settings below. `.env.local` is gitignored — keep it that way, it holds your database
+password.
+
+## Signing in (who can change data)
+
+Every page is readable without signing in. Everything that *writes* — importing a week,
+editing a member's week, restoring, resetting, and downloading a backup — needs the single
+clan-admin account.
+
+```bash
+# in .env.local, alongside DATABASE_URL (see .env.example for the exact shape)
+SUPABASE_URL=...                 # your Supabase project URL
+SUPABASE_PUBLISHABLE_KEY=...     # the sb_publishable_... key — never the secret one
+ADMIN_EMAIL=...                  # the one address allowed to write
+```
+
+Create that one user in **Supabase → Authentication → Users**, keep **signups disabled**
+(that is what makes `ADMIN_EMAIL` mean anything), then sign in at **`/login`** — reachable
+from Clan Settings, or by typing the address. There is no sign-in link in the sidebar on
+purpose: there's exactly one account, and a public dashboard shouldn't advertise a login
+door. Sign out from **Clan Settings → Overview**.
+
+Until you sign in, the write controls aren't shown at all — no import form, no edit pencils,
+no avatar buttons, no Export/Restore/Reset. Signed out, the pages simply read.
+
+**If those three settings are missing or wrong, the app fails closed:** reading keeps
+working exactly as before, and writing is locked. So if your data is readable but you can't
+sign in, suspect these three before suspecting anything else.
 
 ## Which data you're looking at
 
@@ -53,6 +82,10 @@ broken database is not one of them:
 
 Anything else — wrong password, wrong host, a paused Supabase project, no network — shows an
 **error page**. The dashboard will never quietly show demo numbers dressed up as your clan's.
+
+Whether you're **signed in** is a separate question from which of those three you're looking
+at. Demo data is read-only for everybody — signing in doesn't unlock it, connecting a
+database does. On a live database, signing in is what unlocks the write controls.
 
 ## Pages
 
@@ -141,25 +174,24 @@ In **Clan Settings → Overview → Data Management**:
 
 ## Sharing it later (optional)
 
-The database already lives in Supabase, so putting the dashboard online is a hosting
-step rather than a rewrite:
+The database already lives in Supabase and the write endpoints are already behind the
+admin login, so putting the dashboard online is a hosting step rather than a rewrite:
 
-1. Deploy on [Vercel](https://vercel.com/new) with `DATABASE_URL` set to the same pooled
-   Supabase URI — as an environment variable, never committed.
-2. Gate the write endpoints first. Everything under `app/api/` (import, restore, reset,
-   member edits) is **unauthenticated**, which is fine on your own machine and not fine
-   on the internet.
+1. Deploy on [Vercel](https://vercel.com/new) with the four environment variables set —
+   `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `ADMIN_EMAIL` — never
+   committed.
+2. Sign in once on the deployed site and check that a small edit sticks.
 
-The database connection itself needs nothing but that environment variable; the auth
-gate is real work.
+Visitors will see every stat and no write controls; you'll see them once signed in.
 
 ## Project layout
 
 ```
-app/            routes (dashboard, hydra, chimera, timeline, members, settings[+import tab])
-app/api/        write endpoints: import (JSON), backup, restore, reset, member results/avatar
+app/            routes (dashboard, hydra, chimera, timeline, members, settings[+import tab], login)
+app/api/        write endpoints (admin-only): import (JSON), backup, restore, reset, member results/avatar
+proxy.ts        keeps a signed-in session fresh; never blocks a request
 components/     UI (Sidebar, ClashCard, PerformanceTable, TimelineStrip, DonutSummary, ...)
-lib/            types, formatting, compute, db client, data loader, parse/import/persist, mock seed
+lib/            types, formatting, compute, db client, data loader, parse/import/persist, auth, mock seed
 supabase/       migrations/ — numbered, forward-only SQL applied by npm run db:migrate
 scripts/        db-migrate, seed, import (csv/json)
 ```

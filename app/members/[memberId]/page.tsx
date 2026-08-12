@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Flame, Cat } from "lucide-react";
 import { loadDataset, getDataSource } from "@/lib/data";
+import { isAdmin } from "@/lib/auth";
 import { getMemberProfile } from "@/lib/compute";
 import type { MemberClashStat } from "@/lib/types";
 import { AvatarEditor } from "@/components/AvatarEditor";
@@ -10,6 +11,17 @@ import { ExportButton, type ExportData } from "@/components/ExportButton";
 import { SectionTitle } from "@/components/SectionTitle";
 import { MemberHistoryTable, type HistoryRow } from "@/components/MemberHistoryTable";
 import { formatDamage, formatKeys } from "@/lib/format";
+
+// NOT redundant — do not remove as such. Since the write affordances below are
+// gated on isAdmin(), this page's HTML differs per visitor, and a cached copy
+// would bake one visitor's permission state into the response served to others.
+// The route is dynamic today only as a side effect: isAdmin() reads cookies(),
+// "a Request-time API … Using it in a layout or page will opt a route into
+// dynamic rendering". Hoist that call, move it behind a condition or wrap it and
+// the opt-in silently disappears while the page still varies per visitor. This
+// export states the requirement instead of inheriting it, matching
+// app/settings/page.tsx and app/login/page.tsx.
+export const dynamic = "force-dynamic";
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -80,10 +92,23 @@ export default async function MemberDetailPage({
   const profile = getMemberProfile(ds, id);
   if (!profile) notFound();
 
-  // Demo data (bundled seed) is read-only — editing needs a live database.
-  // "demo" is the only source this page reacts to; the storage engine's name
-  // stays inside lib/data.ts.
-  const readOnly = (await getDataSource()) === "demo";
+  // SEAM C. Two independent reasons every write control on this page disappears:
+  // the visitor is not the signed-in clan admin, or the numbers are bundled demo
+  // data. `readOnlyReason` carries which one, because the two need different
+  // sentences and different fixes — and telling an anonymous visitor that "demo
+  // data is read-only" while they look at live clan numbers is a lie.
+  //
+  // Demo wins when both apply: it is the blocker that survives signing in.
+  //
+  // isAdmin() is read here rather than in app/layout.tsx on purpose. It uses
+  // cookies(), "a Request-time API … Using it in a layout or page will opt a
+  // route into dynamic rendering" (node_modules/next/dist/docs/01-app/
+  // 03-api-reference/04-functions/cookies.md) — in the root layout that would
+  // opt EVERY route in, including the statically prerendered /import.
+  const source = await getDataSource();
+  const signedIn = await isAdmin();
+  const readOnly = !signedIn || source === "demo";
+  const readOnlyReason = source === "demo" ? "demo" : signedIn ? null : "anonymous";
 
   const { member, isActive, firstWeek, lastWeek, weeksPresent, weeksActive, bestWeek, total } =
     profile;
@@ -184,6 +209,8 @@ export default async function MemberDetailPage({
           name={member.inGameName}
           avatarUrl={member.avatarUrl}
           ring={isActive ? "hydra" : "none"}
+          readOnly={readOnly}
+          readOnlyReason={readOnlyReason}
         />
         <div>
           <div className="flex items-center gap-2.5">
@@ -236,7 +263,8 @@ export default async function MemberDetailPage({
         <ClashBreakdown stat={profile.chimera} />
       </div>
 
-      {/* Week-by-week history (all tracked weeks; editable unless demo data) */}
+      {/* Week-by-week history (all tracked weeks; editable by the admin on a
+          live database) */}
       <MemberHistoryTable
         rows={historyRows}
         memberId={member.id}
@@ -244,6 +272,7 @@ export default async function MemberDetailPage({
         weeksPresent={weeksPresent}
         totalWeeks={ds.weeks.length}
         readOnly={readOnly}
+        readOnlyReason={readOnlyReason}
       />
     </div>
   );

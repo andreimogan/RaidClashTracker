@@ -1,11 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Download, Upload, Trash2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Download, Upload, Trash2, CheckCircle2, AlertTriangle, Lock } from "lucide-react";
 import { SectionTitle } from "./SectionTitle";
 
 type Msg = { ok: boolean; text: string } | null;
+
+// Why every control here is gone. Two different problems with two different
+// fixes, so they get two different sentences — telling an anonymous visitor on a
+// live database that "demo data is read-only" would simply be false.
+type ReadOnlyReason = "anonymous" | "demo" | null;
 
 function Banner({ msg }: { msg: Msg }) {
   if (!msg) return null;
@@ -87,7 +93,53 @@ function ResetControl() {
   );
 }
 
-export function DataManagement() {
+// Read-only explanation. Nothing actionable is rendered — the backup link in
+// particular is HIDDEN rather than disabled, because a disabled control still
+// advertises /api/backup to anyone reading the page.
+function LockedNote({ reason }: { reason: ReadOnlyReason }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-border bg-panel-2/40 p-4">
+      <Lock className="mt-0.5 shrink-0 text-muted" size={18} />
+      {reason === "demo" ? (
+        <p className="text-sm text-muted">
+          These numbers are bundled sample data, not your clan&apos;s — there is nothing to back
+          up, nowhere to restore into and nothing to reset. Connect the clan database to enable
+          these tools.
+        </p>
+      ) : (
+        <p className="text-sm text-muted">
+          Backups, restore and reset read or rewrite every row, so they need the clan admin
+          account.{" "}
+          <Link href="/login" className="text-text underline underline-offset-2 hover:text-gold">
+            Sign in
+          </Link>{" "}
+          to use them. Reading the dashboard never requires an account.
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function DataManagement({
+  readOnly,
+  readOnlyReason,
+}: {
+  readOnly: boolean;
+  readOnlyReason: ReadOnlyReason;
+}) {
+  return (
+    <section className="card">
+      <SectionTitle className="mb-1">Data Management</SectionTitle>
+      <p className="mb-4 text-sm text-muted">
+        Back up your data to a file, restore it later, or wipe the database to start over.
+      </p>
+      {/* Split so the hooks below never sit behind a conditional return. */}
+      {readOnly ? <LockedNote reason={readOnlyReason} /> : <DataTools />}
+    </section>
+  );
+}
+
+function DataTools() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -120,12 +172,7 @@ export function DataManagement() {
   }
 
   return (
-    <section className="card">
-      <SectionTitle className="mb-1">Data Management</SectionTitle>
-      <p className="mb-4 text-sm text-muted">
-        Back up your data to a file, restore it later, or wipe the database to start over.
-      </p>
-
+    <>
       {/* Backup + Restore */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <a href="/api/backup" className="btn-ghost">
@@ -153,6 +200,6 @@ export function DataManagement() {
         </div>
         <ResetControl />
       </div>
-    </section>
+    </>
   );
 }
