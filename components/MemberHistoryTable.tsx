@@ -21,6 +21,8 @@ export interface HistoryRow {
   totalKeys: number;
   totalDamage: number;
   participationPct: number | null; // null when !present
+  // Signed % change of totalDamage vs the member's most recent prior present
+  // week. null = absent week, or no baseline to compare against → renders a dash.
   trendPct: number | null;
 }
 
@@ -68,7 +70,11 @@ export function MemberHistoryTable({
               <th className="px-3 py-2 font-medium">Total Keys</th>
               <th className="px-3 py-2 font-medium">Total Dmg</th>
               <th className="px-3 py-2 font-medium">Participation</th>
-              <th className={`px-3 py-2 font-medium ${readOnly ? "pr-5" : ""}`}>Trend</th>
+              {/* Self-describing header: this column is total damage vs the prior
+                  present week, NOT the dmg/key trend the clash tables show. */}
+              <th className={`px-3 py-2 font-medium ${readOnly ? "pr-5" : ""}`}>
+                Dmg vs Prev Week
+              </th>
               {!readOnly && (
                 <th className="w-10 px-3 py-2 pr-5">
                   <span className="sr-only">Edit</span>
@@ -106,7 +112,7 @@ export function MemberHistoryTable({
                       {(r.participationPct ?? 0).toFixed(0)}%
                     </td>
                     <td className={`px-3 py-2.5 tabular-nums ${readOnly ? "pr-5" : ""}`}>
-                      <TrendBadge value={r.trendPct ?? 0} />
+                      <TrendBadge value={r.trendPct} />
                     </td>
                   </>
                 ) : (
