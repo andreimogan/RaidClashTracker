@@ -80,8 +80,10 @@ export default async function MemberDetailPage({
   const profile = getMemberProfile(ds, id);
   if (!profile) notFound();
 
-  // Demo data (bundled seed) is read-only — editing needs the local database.
-  const readOnly = (await getDataSource()) !== "sqlite";
+  // Demo data (bundled seed) is read-only — editing needs a live database.
+  // "demo" is the only source this page reacts to; the storage engine's name
+  // stays inside lib/data.ts.
+  const readOnly = (await getDataSource()) === "demo";
 
   const { member, isActive, firstWeek, lastWeek, weeksPresent, weeksActive, bestWeek, total } =
     profile;
@@ -234,7 +236,7 @@ export default async function MemberDetailPage({
         <ClashBreakdown stat={profile.chimera} />
       </div>
 
-      {/* Week-by-week history (all tracked weeks; editable on a local DB) */}
+      {/* Week-by-week history (all tracked weeks; editable unless demo data) */}
       <MemberHistoryTable
         rows={historyRows}
         memberId={member.id}

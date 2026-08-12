@@ -11,6 +11,7 @@ import { persist } from "../lib/persist";
 import { loadDataset } from "../lib/data";
 import { sortedWeeks } from "../lib/compute";
 import { clashWindow, currentWeek, weekWednesday } from "../lib/week";
+import { closeDb } from "../lib/db";
 
 const flag = (name: string): string | undefined => {
   const i = process.argv.indexOf(`--${name}`);
@@ -50,4 +51,10 @@ async function main() {
   console.log(`JSON import complete: ${s.results} results across weeks ${s.weekNumbers.join(", ")}.`);
 }
 
-main().catch((err) => { console.error("Import failed:", err.message ?? err); process.exit(1); });
+main()
+  .catch((err) => {
+    console.error("Import failed:", err.message ?? err);
+    process.exitCode = 1;
+  })
+  // Close the pool or the process keeps the pooler connection open and hangs.
+  .finally(() => closeDb());

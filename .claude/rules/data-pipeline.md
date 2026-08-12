@@ -3,19 +3,19 @@ paths:
   - "lib/parse.ts"
   - "lib/import.ts"
   - "lib/persist.ts"
-  - "lib/sheets.ts"
   - "lib/week.ts"
   - "app/api/**"
   - "scripts/**"
 ---
 
-- Every ingest path (Sheet sync, JSON import, CSV) funnels through the one pipeline: `lib/parse.ts` (parseCsv/parseDamage) → `lib/import.ts` (normalize*, **pure and client-safe** — no Node/DB imports) → `lib/persist.ts` `persist(payload, "upsert" | "replace")`. Never bypass it with direct SQL.
+- Every ingest path (in-app JSON import, CSV file, member week edit) funnels through the one pipeline: `lib/parse.ts` (parseCsv/parseDamage) → `lib/import.ts` (normalize*, **pure and client-safe** — no Node/DB imports) → `lib/persist.ts` `persist(payload, "upsert" | "replace")`. Never bypass it with direct SQL.
 - Semantics are load-bearing:
-  - **Sheet sync = mirror.** Each `(week, clash)` present in the sheet **replaces** the app's data for that pair, so sheet edits and row deletions propagate.
   - **In-app JSON import = replace** of the chosen `(week, clash)` — it's the week's complete standings.
+  - **CSV file import = upsert** — it adds and updates rows without clearing the rest of the week.
+  - **Member week edit = upsert** of that member's two clash rows for one existing week; member and week must already exist, and its validation is stricter than the import paths' (see `docs/reference/data-pipeline.md`).
   - **Legacy nested `{ week, clashes }` JSON = upsert** (back-compat; keep it working).
 - `damage_dealt` accepts a number, `"16.61B"`-style shorthand, or `null` (benched → 0).
 - Clash dates are never user-entered — they derive from the real schedules in UTC (Hydra Wed→Wed, Chimera Fri→Thu; both belong to the same calendar week).
 - CLI scripts must import `scripts/lib/load-env.ts` before anything that touches the DB.
-- Import/sync/reset API routes are **unauthenticated** — acceptable for local use only; they must be gated before any public (Turso/Vercel) deploy.
+- The import/restore/reset API routes are **unauthenticated** — acceptable for local use only; they must be gated before any public deploy.
 - The living doc for this area is `docs/reference/data-pipeline.md` — update it when the pipeline changes.

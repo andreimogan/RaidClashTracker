@@ -1,70 +1,62 @@
-import { createClient, type Client } from "@libsql/client";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import postgres from "postgres";
 
-// Local SQLite (libSQL) connections. The app keeps two local databases —
-// Production (real clan data) and Test (sandbox) — switchable from Clan
-// Settings. The active choice is persisted in a small pointer file so it
-// survives restarts and applies to every server request.
+// The app's single Supabase Postgres connection pool, resolved once from
+// DATABASE_URL (a pooled `:6543` postgresql:// URI). There is no second engine
+// and no local file database: no URL means demo mode, which lib/data.ts decides.
 //
-// Setting DATABASE_URL explicitly (e.g. a hosted Turso DB) overrides the
-// toggle and pins the app to that single database — no code change needed.
+// Two things here are load-bearing:
+//
+//   1. The pool lives on `globalThis`, not a module `const`. Next's dev server
+//      re-evaluates modules on every HMR reload, and a module-level pool would
+//      leak one pool per reload until Supabase's pooler refuses connections.
+//   2. The URI carries the database password, so it is never logged, returned to
+//      a client, rendered, or put in an error message.
+//
+// Deliberately free of filesystem I/O: every page render goes through here.
 
-export type DbEnv = "production" | "test";
+// postgres.js's client type. Re-exported so nothing else in the app imports
+// `postgres` directly. Named `Sql` in node_modules/postgres/types/index.d.ts:701
+// (`interface Sql<TTypes> extends ISql<TTypes>`), which is what the `postgres()`
+// factory returns (same file, :8 and :18).
+export type Db = postgres.Sql;
 
-export const DB_FILES: Record<DbEnv, string> = {
-  production: "file:data/clash.db",
-  test: "file:data/clash-test.db",
-};
+// Not exported as a value anywhere: callers get a client, never the URI.
+const dbGlobal = globalThis as typeof globalThis & { __raidClashDb?: Db };
 
-const POINTER_PATH = "data/active-db.json";
-
-// True when DATABASE_URL is set — switching is disabled (single pinned DB).
-export const isEnvOverride = !!process.env.DATABASE_URL;
-
-export function dbUrlFor(env: DbEnv): string {
-  return process.env.DATABASE_URL || DB_FILES[env];
+export function databaseUrl(): string | null {
+  // Blank counts as unset: a commented-out or emptied line in .env.local should
+  // land in demo mode like an absent one, not in an error page.
+  const url = process.env.DATABASE_URL?.trim();
+  return url ? url : null;
 }
 
-export function activeEnv(): DbEnv {
-  if (isEnvOverride) return "production";
-  try {
-    const parsed = JSON.parse(readFileSync(POINTER_PATH, "utf8")) as { active?: string };
-    return parsed.active === "test" ? "test" : "production";
-  } catch {
-    return "production"; // pointer missing/unreadable → default DB
+export function getDb(): Db {
+  const url = databaseUrl();
+  if (!url) {
+    // No URL in the message — it would not exist anyway, but keep the habit.
+    throw new Error(
+      "DATABASE_URL is not set. Copy .env.example to .env.local, point DATABASE_URL " +
+        "at your Supabase pooled connection, then run `npm run db:migrate`.",
+    );
   }
+  return (dbGlobal.__raidClashDb ??= postgres(url, {
+    // Mandatory on Supabase's transaction pooler: it multiplexes connections
+    // and has no place to keep a prepared statement between queries.
+    prepare: false,
+    max: 3, // one local reader; the pooler is shared with everything else
+    idle_timeout: 20, // seconds — release pooler slots between page loads
+    connect_timeout: 15, // seconds — fail loudly instead of hanging a render
+    // postgres.js's default dumps the whole notice object (8 lines each), which
+    // buries `npm run db:migrate`'s "already exists, skipping" output. Notices
+    // carry no connection detail, so one line each is safe and readable.
+    onnotice: (n) => console.log(`postgres ${n.severity} ${n.code}: ${n.message}`),
+  }));
 }
 
-export function setActiveEnv(env: DbEnv): void {
-  mkdirSync("data", { recursive: true });
-  writeFileSync(POINTER_PATH, JSON.stringify({ active: env }, null, 2));
-}
-
-export function activeDbUrl(): string {
-  return dbUrlFor(activeEnv());
-}
-
-export function isRemoteDb(): boolean {
-  return !activeDbUrl().startsWith("file:");
-}
-
-// One client per resolved URL, created lazily and reused.
-const clients = new Map<string, Client>();
-
-export function getDbFor(env: DbEnv): Client {
-  const url = dbUrlFor(env);
-  let client = clients.get(url);
-  if (!client) {
-    client = createClient({
-      url,
-      authToken: process.env.DATABASE_AUTH_TOKEN, // only needed for remote (Turso)
-      intMode: "number", // damage values stay well under Number.MAX_SAFE_INTEGER
-    });
-    clients.set(url, client);
-  }
-  return client;
-}
-
-export function getDb(): Client {
-  return getDbFor(activeEnv());
+// Closes the pool so a CLI entry's process can exit. Web requests never call it.
+export async function closeDb(): Promise<void> {
+  const sql = dbGlobal.__raidClashDb;
+  if (!sql) return;
+  dbGlobal.__raidClashDb = undefined;
+  await sql.end();
 }

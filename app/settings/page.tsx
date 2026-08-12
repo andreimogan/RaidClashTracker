@@ -1,25 +1,31 @@
-import { Database, CheckCircle2, AlertTriangle, Users, UsersRound, Swords } from "lucide-react";
+import {
+  Database,
+  DatabaseZap,
+  CheckCircle2,
+  AlertTriangle,
+  Users,
+  UsersRound,
+  Swords,
+} from "lucide-react";
 import { loadDataset, getDataSource } from "@/lib/data";
 import { activeMemberIds, sortedWeeks } from "@/lib/compute";
 import { currentWeek } from "@/lib/week";
 import { CLAN_CAP } from "@/lib/constants";
-import { activeEnv, activeDbUrl, isRemoteDb, isEnvOverride } from "@/lib/db";
 import { SettingsTabs } from "@/components/SettingsTabs";
 import { ImportPanel } from "@/components/ImportPanel";
 import { DataManagement } from "@/components/DataManagement";
-import { DatabaseSwitcher } from "@/components/DatabaseSwitcher";
 import { PageTitle } from "@/components/PageTitle";
 import { SectionTitle } from "@/components/SectionTitle";
 
 // Reflects live DB state (seeded vs demo), so render per-request.
 export const dynamic = "force-dynamic";
 
+// Inline code / command treatment, used by every instruction on this page.
+const CODE_CLS = "rounded bg-panel-2 px-1.5 py-0.5 text-text";
+
 export default async function SettingsPage() {
   const ds = await loadDataset();
   const source = await getDataSource();
-  const active = activeEnv();
-  const dbUrl = activeDbUrl();
-  const remote = isRemoteDb();
   const currentRoster = Math.min(activeMemberIds(ds).size, CLAN_CAP);
   const trackedMembers = ds.members.length;
 
@@ -70,35 +76,47 @@ export default async function SettingsPage() {
 
       <section className="card">
         <SectionTitle className="mb-4">Data Source</SectionTitle>
-        {source === "sqlite" ? (
+        {/* Three states, not two: connected-with-data, connected-but-empty (a
+            green tick next to "0 weeks tracked" reads as a bug), and demo. */}
+        {source === "demo" ? (
+          <div className="flex items-start gap-3 rounded-xl border border-gold/30 bg-gold/5 p-4">
+            <AlertTriangle className="mt-0.5 text-gold" size={20} />
+            <div>
+              <div className="font-medium text-gold">Demo mode (sample data)</div>
+              <p className="mt-1 text-sm text-muted">
+                No database is configured, so the dashboard is showing bundled sample data — none
+                of these numbers are your clan&apos;s. To connect it: copy{" "}
+                <code className={CODE_CLS}>.env.example</code> to{" "}
+                <code className={CODE_CLS}>.env.local</code> and fill in{" "}
+                <code className={CODE_CLS}>DATABASE_URL</code>, then run{" "}
+                <code className={CODE_CLS}>npm run db:migrate</code> to create the tables.{" "}
+                <code className={CODE_CLS}>npm run seed</code> afterwards loads a starter dataset
+                you can throw away later.
+              </p>
+            </div>
+          </div>
+        ) : ds.weeks.length === 0 ? (
           <div className="flex items-start gap-3 rounded-xl border border-hydra/30 bg-hydra/5 p-4">
-            <CheckCircle2 className="mt-0.5 text-hydra" size={20} />
+            <DatabaseZap className="mt-0.5 shrink-0 text-hydra" size={20} />
             <div>
               <div className="font-medium text-hydra">
-                {remote
-                  ? "Connected to remote database"
-                  : `Local database — ${active === "test" ? "Test" : "Production"}`}
+                Connected to the clan database — no clash data yet
               </div>
               <p className="mt-1 text-sm text-muted">
-                Reading live data from{" "}
-                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">{dbUrl}</code>.
-                Use the <span className="text-text">Import data</span> tab after each clash to update it.
+                The connection works, so the zeroes above are real: nothing has been imported yet.
+                Open the <span className="text-text">Import data</span> tab and upload a finished
+                clash to fill them in. Nothing on this dashboard is sample data.
               </p>
             </div>
           </div>
         ) : (
-          <div className="flex items-start gap-3 rounded-xl border border-gold/30 bg-gold/5 p-4">
-            <AlertTriangle className="mt-0.5 text-gold" size={20} />
+          <div className="flex items-start gap-3 rounded-xl border border-hydra/30 bg-hydra/5 p-4">
+            <CheckCircle2 className="mt-0.5 text-hydra" size={20} />
             <div>
-              <div className="font-medium text-gold">Demo mode (seed data)</div>
+              <div className="font-medium text-hydra">Connected to the clan database</div>
               <p className="mt-1 text-sm text-muted">
-                The local database isn&apos;t set up yet, so the dashboard is showing bundled
-                sample data. Run{" "}
-                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:init</code>{" "}
-                then{" "}
-                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run seed</code>{" "}
-                to create and populate{" "}
-                <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">data/clash.db</code>.
+                Every number on this dashboard is read live from the database. Use the{" "}
+                <span className="text-text">Import data</span> tab after each clash to update it.
               </p>
             </div>
           </div>
@@ -108,17 +126,17 @@ export default async function SettingsPage() {
       <section className="card">
         <SectionTitle className="mb-2">Updating the Data</SectionTitle>
         <ol className="ml-5 list-decimal space-y-1.5 text-sm text-muted">
-          <li>One-time: <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run db:init</code> creates the local database (skip if it&apos;s already set up).</li>
-          <li>After a clash ends, open the <span className="text-text">Import data</span> tab above — sync your Google Sheet, or upload/paste the clash JSON.</li>
+          <li>One-time, in this order: put your <code className={CODE_CLS}>DATABASE_URL</code> in <code className={CODE_CLS}>.env.local</code> (copy <code className={CODE_CLS}>.env.example</code> as a starting point), then run <code className={CODE_CLS}>npm run db:migrate</code> to create the tables. Skip both if it&apos;s already set up — <code className={CODE_CLS}>db:migrate</code> has nothing to do without a <code className={CODE_CLS}>DATABASE_URL</code>.</li>
+          <li>After a clash ends, open the <span className="text-text">Import data</span> tab above.</li>
           <li>Pick the week (it defaults to the current clash week) and the clash; the start/end dates auto-derive from the clash schedule.</li>
-          <li>Prefer the terminal? <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run sync:sheet</code>, <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import:json</code>, or <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run import</code> (CSV) do the same.</li>
-          <li>Run <code className="rounded bg-panel-2 px-1.5 py-0.5 text-text">npm run dev</code> whenever you want to view stats.</li>
+          <li>Upload or paste the clash JSON and hit <span className="text-text">Import</span> — it reads <span className="text-text">Replace data</span> if that week already has results. Or, from the terminal, <code className={CODE_CLS}>npm run import:json</code> or <code className={CODE_CLS}>npm run import</code> (CSV) do the same.</li>
         </ol>
+        <p className="mt-2 text-sm text-muted">
+          Stats are served by <code className={CODE_CLS}>npm run dev</code> — the app you are reading this in.
+        </p>
       </section>
 
-      <DatabaseSwitcher active={active} envOverride={isEnvOverride} />
-
-      <DataManagement active={active} />
+      <DataManagement />
     </div>
   );
 
@@ -131,8 +149,6 @@ export default async function SettingsPage() {
       }))}
       currentWeek={current}
       existingData={existingData}
-      active={active}
-      envOverride={isEnvOverride}
     />
   );
 

@@ -1,4 +1,4 @@
-// Pure normalization: turn JSON (nested per-week) or CSV/Sheet records into the
+// Pure normalization: turn JSON (nested per-week) or CSV records into the
 // flat shape the persistence layer writes. Validation throws a descriptive Error.
 // No Node/DB imports — usable in the browser for live preview.
 import { parseDamage } from "./parse";
@@ -159,7 +159,7 @@ export function normalizeFlatResults(items: unknown, meta: FlatMeta): ImportPayl
   return { rows, weeks, progress: [] };
 }
 
-// ---- CSV / Google Sheet records ----
+// ---- CSV records ----
 // Columns: week_number, start_date, end_date, player, clash_type, keys_used,
 //          total_damage [, progress]
 export function normalizeCsvRecords(records: Record<string, string>[]): ImportPayload {

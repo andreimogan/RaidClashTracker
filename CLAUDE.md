@@ -2,29 +2,29 @@
 
 # Raid Clash Tracker
 
-Local-first Next.js dashboard tracking a RAID: Shadow Legends clan's **Hydra Clash** and **Chimera Clash** performance — keys used, damage, participation, week-over-week trends. SQLite file via libSQL; no accounts, no hosting; deployable later to Turso/Vercel with env vars only.
+Next.js dashboard tracking a RAID: Shadow Legends clan's **Hydra Clash** and **Chimera Clash** performance — keys used, damage, participation, week-over-week trends. **Supabase Postgres** via postgres.js over the pooled (`:6543`) `DATABASE_URL`; runs locally, no accounts yet; deployable later to Vercel once the write API is gated.
 
 ## Commands
 - dev: `npm run dev`
 - build: `npm run build`
 - lint: `npm run lint`
 - test: **none** — no test suite; verify by building and exercising the affected page
-- db setup: `npm run db:init` (schema) → `npm run seed` (optional sample data)
-- data in: `npm run import -- <csv>` · `npm run import:json -- <file> --clash hydra|chimera [--week N]` · `npm run sync:sheet -- "<url>"`
+- db setup: `npm run db:migrate` (apply migrations) → `npm run seed` (optional sample data)
+- data in: `npm run import -- <csv>` · `npm run import:json -- <file> --clash hydra|chimera [--week N]`
 
 ## Layout
-- `app/` — routes: `/` overview, `/hydra`, `/chimera`, `/timeline`, `/members[/[memberId]]`, `/settings`, `/import`; `app/api/` — write endpoints (import, sheet-sync, backup, restore, reset, database switch, member avatar)
+- `app/` — routes: `/` overview, `/hydra`, `/chimera`, `/timeline`, `/members[/[memberId]]`, `/settings`, `/import`; `app/api/` — write endpoints (import, backup, restore, reset, member results, member avatar)
 - `components/` — UI (gestal.gg aesthetic; tokens/primitives live in `app/globals.css`)
-- `lib/` — types · db client (`db.ts`) · read path (`data.ts` → `compute.ts`) · write pipeline (`parse.ts` → `import.ts` → `persist.ts`) · `sheets.ts` · formatting · `mock-data.ts` demo fallback
-- `db/schema.sql` — the SQLite schema; `data/` — actual DBs (`clash.db` prod, `clash-test.db` test, `active-db.json` pointer)
-- `scripts/` — CLI entries (db-init, seed, import csv/json, sync-sheet); each imports `scripts/lib/load-env.ts` first
+- `lib/` — types · db client (`db.ts`) · read path (`data.ts` → `compute.ts`) · write pipeline (`parse.ts` → `import.ts` → `persist.ts`) · formatting · `mock-data.ts` demo fallback
+- `supabase/migrations/` — numbered, forward-only SQL; applied in order by `npm run db:migrate`, never edited once applied. `data/` — sample datasets only (no database file is read at runtime)
+- `scripts/` — CLI entries (db-migrate, seed, import csv/json); each imports `scripts/lib/load-env.ts` first and closes the pool so the process exits
 
 ## Conventions (always)
 - Match existing patterns; read neighboring files before writing new ones.
 - This Next.js version differs from training data — read the relevant guide in `node_modules/next/dist/docs/` before writing route/API code (see AGENTS.md).
 - Style only with the tokens and primitives from `app/globals.css` (`card`, `inset`, `fill-hydra`, …) — never hardcode colors.
 - All data writes funnel through one pipeline: parse → normalize (`lib/import.ts`, pure/client-safe) → `persist(payload, "upsert" | "replace")`. Never write SQL from routes or components.
-- The zero-config demo fallback must keep working: empty/missing DB renders `lib/mock-data.ts`.
+- The demo fallback has exactly two triggers and must keep working for both: no `DATABASE_URL`, or tables that don't exist yet (Postgres `42P01`) → `lib/mock-data.ts`. Every other database failure must surface an error page — a reachable-but-empty database renders genuinely empty, and an outage must never render fake clan data as real.
 
 ## Deeper rules
 See `.claude/rules/` — path-scoped, they load only when relevant.

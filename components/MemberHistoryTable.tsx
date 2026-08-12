@@ -1,9 +1,10 @@
 "use client";
 
 // Week-by-week history for the member detail page. Lists ALL tracked weeks
-// (absent weeks render em-dashes) and — when the app runs on a local database —
-// lets the user edit a week's four values (Hydra/Chimera keys + damage) in a
-// small dialog that POSTs to /api/members/[memberId]/results.
+// (absent weeks render em-dashes) and — when the app is connected to the clan
+// database rather than showing demo data — lets the user edit a week's four
+// values (Hydra/Chimera keys + damage) in a small dialog that POSTs to
+// /api/members/[memberId]/results.
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Pencil, X } from "lucide-react";
@@ -48,9 +49,11 @@ export function MemberHistoryTable({
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 p-5 pb-3">
         <SectionTitle>Week-by-Week History</SectionTitle>
         <div className="flex items-center gap-3">
+          {/* The only explanation the user gets for the missing edit pencils, so
+              it names the actual cause: demo data, not a missing local file. */}
           {readOnly && (
-            <span className="text-xs text-faint">
-              Editing requires a local database — demo data is read-only
+            <span className="text-xs text-muted">
+              Editing needs the clan database connected — demo data is read-only
             </span>
           )}
           <span className="text-sm text-muted">

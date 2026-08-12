@@ -34,7 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local SQLite database (personal clan data) + active-DB pointer
+# archived local database files + the legacy active-DB pointer (personal clan data).
+# The app no longer reads any database file — these stay ignored so the owner's
+# archive is never committed.
 /data/clash.db
 /data/clash.db-*
 /data/clash-test.db

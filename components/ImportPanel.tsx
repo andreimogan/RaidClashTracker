@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileJson, Sheet, Upload, RefreshCw, CheckCircle2, AlertTriangle, Database, FlaskConical } from "lucide-react";
+import { FileJson, Upload, CheckCircle2, AlertTriangle } from "lucide-react";
 import { normalizeFlatResults, type ClashType } from "@/lib/import";
 import { formatDamage, formatDateRange } from "@/lib/format";
 import { clashWindow, weekWednesday, type CurrentWeek } from "@/lib/week";
 import type { PersistSummary } from "@/lib/persist";
-import type { DbEnv } from "@/lib/db";
 
 type WeekOpt = { weekNumber: number; startDate: string; endDate: string };
 
@@ -18,7 +17,7 @@ function ResultBanner({ summary }: { summary: PersistSummary }) {
       <CheckCircle2 className="mt-0.5 shrink-0 text-hydra" size={20} />
       <div className="text-sm">
         <div className="font-medium text-hydra">
-          {summary.mode === "replace" ? "Synced" : "Imported"} {summary.results} result
+          Imported {summary.results} result
           {summary.results === 1 ? "" : "s"} into week{summary.weekNumbers.length === 1 ? "" : "s"}{" "}
           {summary.weekNumbers.join(", ")}.
         </div>
@@ -52,34 +51,12 @@ export function ImportPanel({
   weeks,
   currentWeek,
   existingData,
-  active,
-  envOverride,
 }: {
   weeks: WeekOpt[];
   currentWeek: CurrentWeek;
   existingData: Record<number, { hydra: number; chimera: number }>;
-  active: DbEnv;
-  envOverride: boolean;
 }) {
   const router = useRouter();
-
-  // ---- import destination (active database) ----
-  const [switching, setSwitching] = useState<DbEnv | null>(null);
-  async function switchTo(env: DbEnv) {
-    if (env === active || switching || envOverride) return;
-    setSwitching(env);
-    try {
-      const res = await fetch("/api/database", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ active: env }),
-      });
-      const data = await res.json();
-      if (data.ok) router.refresh();
-    } finally {
-      setSwitching(null);
-    }
-  }
 
   // ---- week / clash selection ----
   const [weekNumber, setWeekNumber] = useState(currentWeek.weekNumber);
@@ -184,89 +161,11 @@ export function ImportPanel({
     }
   }
 
-  // ---- Google Sheet sync ----
-  const [sheetUrl, setSheetUrl] = useState("");
-  const [syncing, setSyncing] = useState(false);
-  const [sheetError, setSheetError] = useState<string | null>(null);
-  const [sheetResult, setSheetResult] = useState<PersistSummary | null>(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("clash:sheetUrl");
-    setSheetUrl(saved || process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL || "");
-  }, []);
-
-  async function syncSheet() {
-    setSyncing(true);
-    setSheetError(null);
-    setSheetResult(null);
-    localStorage.setItem("clash:sheetUrl", sheetUrl);
-    try {
-      const res = await fetch("/api/sheet-sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: sheetUrl }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) setSheetError(data.error);
-      else {
-        setSheetResult(data.summary);
-        router.refresh(); // re-read existingData so the week tags / overwrite warning stay true
-      }
-    } catch (err) {
-      setSheetError(err instanceof Error ? err.message : "Sync request failed.");
-    } finally {
-      setSyncing(false);
-    }
-  }
-
   const fieldCls =
     "rounded-lg border border-border bg-panel-2 px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-chimera/50";
 
-  const isTest = active === "test";
-  const DEST: { key: DbEnv; label: string }[] = [
-    { key: "production", label: "Production" },
-    { key: "test", label: "Test" },
-  ];
-
   return (
     <div className="flex flex-col gap-6">
-      {/* Destination database — imports write to the active DB */}
-      <div
-        className={`flex flex-wrap items-center gap-3 rounded-2xl border p-4 ${
-          isTest ? "border-gold/30 bg-gold/5" : "border-border bg-panel"
-        }`}
-      >
-        {isTest ? <FlaskConical size={20} className="text-gold" /> : <Database size={20} className="text-muted" />}
-        <div className="min-w-0">
-          <div className="font-medium">
-            Importing into: <span className={isTest ? "text-gold" : "text-text"}>{isTest ? "Test" : "Production"}</span>
-          </div>
-          <div className="text-xs text-muted">
-            JSON import and Google Sheet sync both write to the active database.
-          </div>
-        </div>
-        {envOverride ? (
-          <span className="ml-auto text-xs text-faint">Pinned via DATABASE_URL.</span>
-        ) : (
-          <div className="pill-group ml-auto">
-            {DEST.map((d) => {
-              const on = d.key === active;
-              const activeCls = d.key === "test" ? "bg-panel text-gold" : "bg-panel text-hydra";
-              return (
-                <button
-                  key={d.key}
-                  onClick={() => switchTo(d.key)}
-                  disabled={on || !!switching}
-                  className={`pill disabled:cursor-default ${on ? activeCls : ""}`}
-                >
-                  {switching === d.key ? "Switching…" : d.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       {/* JSON import */}
       <section className="card">
         <div className="mb-1 flex items-center gap-2.5">
@@ -406,39 +305,6 @@ export function ImportPanel({
           <div className="mt-4">
             {jsonResult && <ResultBanner summary={jsonResult} />}
             {jsonError && <ErrorBanner message={jsonError} />}
-          </div>
-        )}
-      </section>
-
-      {/* Google Sheet sync */}
-      <section className="card">
-        <div className="mb-1 flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-panel-2 text-hydra">
-            <Sheet size={20} />
-          </span>
-          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-gold">Google Sheet Sync</h2>
-        </div>
-        <p className="mb-4 text-sm text-muted">
-          Keep your sheet as the source of truth. Syncing <strong>mirrors</strong> it — each week
-          &amp; clash in the sheet replaces the app&apos;s data (deletions included). The sheet must be
-          published to web / shared &quot;Anyone with the link&quot; and use the documented columns.
-        </p>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <input
-            value={sheetUrl}
-            onChange={(e) => setSheetUrl(e.target.value)}
-            placeholder="https://docs.google.com/spreadsheets/d/.../edit#gid=0"
-            className="flex-1 rounded-lg border border-border bg-panel-2 px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-hydra/50"
-          />
-          <button onClick={syncSheet} disabled={syncing || !sheetUrl.trim()} className="btn-accent bg-hydra">
-            <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
-            {syncing ? "Syncing..." : "Sync"}
-          </button>
-        </div>
-        {(sheetResult || sheetError) && (
-          <div className="mt-4">
-            {sheetResult && <ResultBanner summary={sheetResult} />}
-            {sheetError && <ErrorBanner message={sheetError} />}
           </div>
         )}
       </section>

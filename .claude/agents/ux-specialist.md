@@ -13,7 +13,7 @@ Before reviewing, read `CLAUDE.md`, `docs/project-map.md`, `.claude/rules/ux.md`
 Catch UX defects a correctness review misses: broken flows, inaccessible interactions, unhandled empty/error states, and confusing copy — before they reach the user.
 
 ## What you review (the four lenses)
-- **Flow & interaction** — multi-step flows (import, edit dialogs, DB switch), affordances, confirmation/undo for destructive or lossy actions, feedback after an action (optimistic vs. `router.refresh()`), and error recovery. Does the happy path work, and does every branch lead somewhere sensible?
+- **Flow & interaction** — multi-step flows (import, edit dialogs), affordances, confirmation/undo for destructive or lossy actions, feedback after an action (optimistic vs. `router.refresh()`), and error recovery. Does the happy path work, and does every branch lead somewhere sensible?
 - **Accessibility** — keyboard operability (tab order, Escape, Enter-to-submit), focus management (initial focus, focus trap in modals, focus restore on close), ARIA roles/labels/`aria-modal`, and contrast against the dark token palette. Flag missing focus traps, unreachable controls, icon-only buttons without labels.
 - **State coverage** — every surface must handle empty (no data yet), loading/pending, error, and **demo mode** (read-only, DB not initialized) gracefully. Look for tables/cards/pages that assume data exists or that offer actions that can't succeed.
 - **Content & clarity** — microcopy, labels, tooltips, and whether RAID/clash-domain terms are legible to clanmates who aren't power users. Cross-check against `ONBOARDING.md` / `TUTORIAL.md` for consistent terminology.
