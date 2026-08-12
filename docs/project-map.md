@@ -49,5 +49,4 @@ Specialists (project-specific, generated 2026-07-06):
 
 - **No test suite** — verification is `npm run build` + manually exercising the affected page. A future order could add one.
 - **Unauthenticated write API** — fine locally; hard blocker to resolve before any public Turso/Vercel deploy.
-- **Uncommitted work in progress** — at bootstrap time the working tree had broad modifications (gestal restyle follow-ups, `app/api/members/`, `AvatarEditor.tsx`, `lib/members.ts`, `ONBOARDING.md`, `TUTORIAL.md`, `Assets UI/`) not yet committed.
 - **`Assets UI/` folder** — design references exist but their intended workflow (manual vs. Figma-driven) is not established.

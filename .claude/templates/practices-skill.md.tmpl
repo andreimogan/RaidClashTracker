@@ -1,0 +1,57 @@
+---
+# Companion practice skill for one agent. Lives at
+# .claude/skills/<agent>-practices/SKILL.md and is wired by that agent's
+# `skills:` frontmatter, so its full content loads for that agent only.
+# Set `name` and `description` only: the cross-vendor Agent Skills spec allows
+# six fields and anything else hard-errors on upload/packaging, so staying
+# inside it keeps this portable. Never set disable-model-invocation — a skill
+# with it cannot be preloaded, which defeats the wiring.
+name: <agent>-practices
+description: <One sentence: practice knowledge for the <agent> agent working on <domain> in this project's stack. This text also joins the session skill listing, so keep it to one line.>
+---
+
+# <Domain> practice for this project
+
+<One or two sentences: which agent this serves, and what the reader is assumed
+to already know. Everything below should fail that assumption — if a paragraph
+would be true of any project using this stack, it is model knowledge, cut it.>
+
+**Stack this is written against:** <framework + version, from the manifest>.
+Sources and verification dates are in `SOURCES.md` beside this file.
+
+## Current
+
+<The practice knowledge itself, organised by the decisions the agent actually
+makes. Each claim traces to a row in SOURCES.md. Prefer statements that
+contradict or sharpen what the code already does; a practice the repo already
+follows does not need to be written down.>
+
+- <claim — what to do, and the condition under which it applies>
+- <claim — including anything the project currently does that current practice
+  advises against, with what to do instead>
+
+## In this repo
+
+<Where the general practice above meets what is actually here: the conventions
+observed in the code, the deliberate deviations, and the files that set the
+pattern. Point at paths; do not paste code.>
+
+## Open questions
+
+<What the sources could not settle. Keeping these visible is what stops the next
+refresh from re-researching the same dead end.>
+
+<!--
+Superseded guidance goes in a collapsed block so it stays findable without
+costing attention. Delete the block entirely once nothing references the old way.
+
+<details>
+<summary>Old patterns (deprecated YYYY-MM)</summary>
+
+- <what used to be recommended, and the one-line reason it changed>
+
+</details>
+-->
+
+<!-- Caps: keep this file under 500 lines. Over that, consolidate — never
+     append. Nothing time-sensitive in the prose; dates live in SOURCES.md. -->

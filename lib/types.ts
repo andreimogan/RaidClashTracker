@@ -79,7 +79,10 @@ export interface MemberWeekRow {
   totalKeys: number;
   totalDamage: number;
   participationPct: number; // totalKeys / max possible (Hydra 3 + Chimera 2)
-  trendPct: number; // total dmg/key vs the member's prior present weeks
+  // Signed % change of totalDamage vs the member's most recent prior PRESENT
+  // week (gaps skipped). null = no baseline (first tracked week, or a baseline
+  // week with 0 damage) — the UI renders a dash, not 0%.
+  trendPct: number | null;
 }
 
 // A member's lifetime stats for one scope (hydra | chimera | total).

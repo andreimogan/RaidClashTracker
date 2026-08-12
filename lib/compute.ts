@@ -55,6 +55,14 @@ function resultsFor(ds: Dataset, weekId: string, clash: PerfScope): ClashResult[
   );
 }
 
+// Signed percentage change of `current` against `previous`, e.g. (12, 10) => +20.
+// Returns null when there is no usable baseline (previous <= 0), so callers can
+// distinguish "nothing to compare against" from a genuinely flat 0%.
+export function deltaPct(current: number, previous: number): number | null {
+  if (previous <= 0) return null;
+  return ((current - previous) / previous) * 100;
+}
+
 // Aggregate a member's results within a week into a single {keys, damage} pair.
 function aggregateMemberWeek(
   ds: Dataset,
@@ -151,8 +159,7 @@ export function getPerformance(
         ? aggregateMemberWeek(ds, member.id, prevWeek.id, scope)
         : { keys: 0, damage: 0 };
       const prevPerKey = prev.keys ? prev.damage / prev.keys : 0;
-      const trendPct =
-        prevPerKey > 0 ? ((thisPerKey - prevPerKey) / prevPerKey) * 100 : 0;
+      const trendPct = deltaPct(thisPerKey, prevPerKey) ?? 0;
 
       return {
         rank: 0,
@@ -242,22 +249,21 @@ export function getMemberProfile(ds: Dataset, memberId: string): MemberProfile |
   );
   const presentWeeks = weeks.filter((w) => presentWeekIds.has(w.id));
 
-  const history: MemberWeekRow[] = presentWeeks.map((week) => {
+  const history: MemberWeekRow[] = presentWeeks.map((week, i) => {
     const hydra = aggregateMemberWeek(ds, memberId, week.id, "hydra");
     const chimera = aggregateMemberWeek(ds, memberId, week.id, "chimera");
     const totalKeys = hydra.keys + chimera.keys;
     const totalDamage = hydra.damage + chimera.damage;
     const maxKeys = maxKeysFor("total");
 
-    // Trend: this week's total dmg/key vs the average of prior present weeks.
-    const thisPerKey = totalKeys ? totalDamage / totalKeys : 0;
-    const priorPerKey = presentWeeks
-      .filter((w) => w.weekNumber < week.weekNumber)
-      .map((w) => aggregateMemberWeek(ds, memberId, w.id, "total"))
-      .filter((a) => a.keys > 0)
-      .map((a) => a.damage / a.keys);
-    const priorAvg = priorPerKey.length
-      ? priorPerKey.reduce((s, v) => s + v, 0) / priorPerKey.length
+    // Trend: this week's total damage vs the member's most recent PRIOR PRESENT
+    // week (presentWeeks is ascending, so that is simply the previous entry —
+    // gaps in the roster are skipped, not counted as a zero week). The member's
+    // first tracked week, or one whose baseline dealt no damage, has no basis for
+    // comparison and yields null so the UI can show a dash instead of "0%".
+    const priorWeek = presentWeeks[i - 1];
+    const priorDamage = priorWeek
+      ? aggregateMemberWeek(ds, memberId, priorWeek.id, "total").damage
       : 0;
 
     return {
@@ -267,7 +273,7 @@ export function getMemberProfile(ds: Dataset, memberId: string): MemberProfile |
       totalKeys,
       totalDamage,
       participationPct: maxKeys ? Math.min(100, (totalKeys / maxKeys) * 100) : 0,
-      trendPct: priorAvg > 0 ? ((thisPerKey - priorAvg) / priorAvg) * 100 : 0,
+      trendPct: deltaPct(totalDamage, priorDamage),
     };
   });
 

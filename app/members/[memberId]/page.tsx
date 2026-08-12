@@ -159,7 +159,8 @@ export default async function MemberDetailPage({
             r.totalKeys,
             r.totalDamage,
             (r.participationPct ?? 0).toFixed(0),
-            (r.trendPct ?? 0).toFixed(0),
+            // Empty, not "0" — a week with no baseline has no trend to report.
+            r.trendPct === null ? "" : r.trendPct.toFixed(0),
           ]
         : [r.week.weekNumber, r.week.startDate, r.week.endDate, "", "", "", "", "", "", "", ""],
     ),

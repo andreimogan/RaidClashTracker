@@ -1,0 +1,47 @@
+# Sources — <agent>-practices
+
+The evidence behind every claim in `SKILL.md`. This file is **not** loaded with
+the skill; it costs nothing until something reads it, which is what makes it
+affordable to keep in full.
+
+Two jobs: it is the citation trail for claims that came off the open web, and it
+is the input to staleness checking — `/improve-agent` re-reads the dates and TTLs
+here to decide what is worth re-verifying, without paying to research everything.
+
+- **confidence** — `registry` if the source is listed in
+  `.claude/conventions/source-registry.md`, `search` if it came from open web
+  search. `search` rows are the first candidates for re-verification.
+- **verified-on** — the date the page was actually read. Never copy a date
+  forward without re-reading.
+- **TTL** — how long this claim is trusted before it should be re-checked.
+  Short for anything version-coupled or fast-moving; long for stable platform
+  behaviour. `on-change` means re-verify when the pinned version changes rather
+  than on a clock.
+
+## Claims
+
+| Claim | Source | verified-on | confidence | TTL |
+|---|---|---|---|---|
+| <the claim, phrased as it appears in SKILL.md> | <URL> | <YYYY-MM-DD> | <registry\|search> | <90d \| on-change> |
+
+## Versions this was researched against
+
+<!-- Re-verify anything TTL'd `on-change` when one of these moves. -->
+
+| Dependency | Version | Read from |
+|---|---|---|
+| <package> | <version> | <manifest or lockfile path> |
+
+## Open questions
+
+<!-- Carried forward between refreshes so the same dead end is not re-researched. -->
+
+- <question the sources could not settle, and what would answer it>
+
+## Revisions
+
+<!-- Append-only. One line per /improve-agent run, including runs that only removed. -->
+
+| Date | Trigger | Added | Removed | Notes |
+|---|---|---|---|---|
+| <YYYY-MM-DD> | <bootstrap \| add-role \| improve-agent \| version change> | <n claims> | <n claims> | <one line> |

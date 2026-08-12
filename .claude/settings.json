@@ -5,10 +5,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/orchestrate-gate.mjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/orchestrate-gate.js\""
           }
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node \"$CLAUDE_PROJECT_DIR/.claude/scripts/statusline-cache.js\""
   }
 }
