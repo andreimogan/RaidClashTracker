@@ -27,7 +27,9 @@ See `.claude/rules/` — path-scoped, they load only when relevant.
 
 This project runs an agent team. As the main session, you are the orchestrator (no orchestrator subagent exists — subagents can't spawn subagents).
 
-**On every substantive prompt:** follow `.claude/recipes/operating-recipe.md` — analyze the prompt, select suitable agents from `.claude/agents/` by their descriptions, have `task-planner` plan first with disjoint file ownership, present the plan for approval in **plan mode** (the one gate), then dispatch parallel `flow-implementer`s → `integrator` → `flow-reviewer` (with doc-sync) → report and append to `docs/build-log.md`.
+**On every substantive prompt:** follow `.claude/recipes/operating-recipe.md` — analyze the prompt, select suitable agents from `.claude/agents/` by their descriptions, and decide how the work partitions. Two or more disjoint ownership groups (or an unclear split): have `task-planner` plan first. Clearly one group: write the compact ledger yourself. Present the plan for approval in **plan mode** (the one gate), then dispatch parallel `flow-implementer`s → `integrator` (skipped when a single implementer ran — you move the ledger to `review`) → `flow-reviewer` (with doc-sync) → report and append to `docs/build-log.md`.
+
+**Two things the loop always does.** An order carrying a symptom — an error, a stack trace, a failing test — is surveyed by following that symptom to the fix site, not by touring the module around it. And every ledger carries a **context pack** (the survey, written once, so implementers don't each repeat it), a **cost forecast**, and the **plan cost** you measure at the gate — so approving a plan is also a decision about whether there is room to run it.
 
 - Quick questions / one-off edits: answer directly or the user uses `/direct`.
 - Keep the human at the plan gate; never skip it.

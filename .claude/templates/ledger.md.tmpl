@@ -1,12 +1,69 @@
 # Task ledger: <feature-slug>
 
-<!-- One per order, at docs/tasks/<feature-slug>.md. Written by task-planner,
+<!-- One per order, at docs/tasks/<feature-slug>.md. Written by task-planner —
+     or by the main session itself on a solo order (one ownership group) —
      claimed/updated by implementers, advanced by integrator and reviewer.
      See .claude/conventions/handoff-contract.md for the full contract. -->
 
 order: "<the original prompt / order, verbatim>"
 status: planning   # planning | approved | in-progress | integrating | review | done | blocked
 created: <ISO datetime>
+
+## Context pack
+
+<!-- Written ONCE by task-planner, immutable after approval. Max 120 lines.
+     The exploration every implementer would otherwise repeat. Paths and
+     one-liners, never pasted code.
+     Where to START, not the boundary of what exists: if what you find on the
+     ground contradicts it, go look, and report that it misled you. -->
+
+<!-- BUG ORDERS: lead with this, delete it otherwise.
+**Diagnosis:** <symptom> → <cause> → <where the fix goes>
+- Evidence: <the failing test / the frame in the trace / the commit>
+-->
+
+**Stack:** <framework + pinned versions, read from the manifests>
+
+**Files in play**
+- `<path>` — <one-line role>
+
+**Seams** <!-- where tasks meet; name the owning task -->
+- `<path>` — <the contract across it> · owned by <task id>
+
+**Constraints** <!-- rules and invariants binding THIS order -->
+- <constraint>
+
+**Prior decisions** <!-- from docs/build-log.md, only where they bind this order -->
+- <decision and why it constrains us>
+
+**Non-goals**
+- <what is deliberately out of scope>
+
+## Cost forecast
+
+<!-- Written by task-planner at plan time; see .claude/conventions/cost-forecast.md.
+     Shown at the gate next to the current 5-hour window so the user can decide
+     whether to start now. Keep it to the headline plus 3-4 components. -->
+
+**Estimate: <N>M tokens** (range <low>–<high>) · ~$<cost> at <model> rates
+- <biggest component, e.g. parallel build, N tasks> — <tokens>
+- <next component> — <tokens>
+- Bounce allowance (<n> review bounce) — <tokens>
+- Everything else — <tokens>
+
+Basis: <N prior orders in docs/build-log.md | shipped baselines, no history yet>
+Window at plan time: <5h NN% used, resets HH:MM | unknown — check /usage>
+
+## Plan cost
+
+<!-- Written by the MAIN SESSION at the gate (recipe step 3), never by
+     task-planner — a subagent cannot see its own transcript, so it cannot know
+     what it just cost. Fill from `node .claude/scripts/token-report.js
+     --plan-cost`. This section must stay BELOW the forecast: the forecast
+     parser reads the first token figure in its own section.
+     A breakdown of what this order will report as its actual, not an addition. -->
+
+**Measured: <N>k tokens so far** (main <N>k + planner <N>k) · <X>% of the forecast above
 
 ## Tasks
 

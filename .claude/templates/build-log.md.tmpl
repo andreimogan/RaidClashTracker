@@ -20,5 +20,20 @@
 - **Decisions:** <choices made>
 - **Rejected:** <alternatives not taken and why>
 - **Notes:** <follow-ups, unknowns>
+- **Cost:** est <N>M → actual <paste `node .claude/scripts/token-report.js --line`>
 
+The Cost line is what makes efficiency answerable later: it accumulates into a
+history the maintainer reads to spot drift ("orders got more expensive after X"),
+and the planner reads to calibrate its next forecast. Lead with the forecast from
+the ledger so estimate and outcome sit side by side. Omit it only if Node is
+unavailable in this project.
+
+Say "solo order" in **Decisions** when it was one. Solo orders plan without a
+planner dispatch, so their `plan` figure measures a different shape and averaging
+the two together describes neither.
+
+The line ends with a `plan NNNk` fragment when the session planned an order —
+what creating the plan itself cost, already included in the total beside it.
+Keep it: three of those replace the shipped order-overhead baseline with this
+project's own figure, and the maintainer watches it for planning bloat.
 -->

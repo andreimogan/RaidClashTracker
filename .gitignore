@@ -46,7 +46,8 @@ yarn-error.log*
 Assets UI/gestal.gg_raid_screenshot_*.png
 Assets UI/**/*.psd
 
-# python bytecode (the legacy .py hook is kept but unused; settings.json runs the .mjs)
+# python bytecode (settings.json runs the Node hook twin, orchestrate-gate.js;
+# orchestrate-gate.py is the shipped fallback runtime, kept but unused here)
 __pycache__/
 *.pyc
 
@@ -56,3 +57,11 @@ __pycache__/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Scaffold-owned paths (added by the scaffold updater)
+# machine-specific Claude Code settings
+.claude/settings.local.json
+# rate-limit samples from the statusline sensor
+.claude/budget-state.json
+# backups written by the scaffold updater
+.claude/update-backup/
