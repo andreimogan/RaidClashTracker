@@ -1,12 +1,13 @@
 # Raid Clash Tracker
 
-A local web dashboard for tracking our RAID: Shadow Legends clan's **Hydra Clash**
+A web dashboard for tracking our RAID: Shadow Legends clan's **Hydra Clash**
 and **Chimera Clash** performance — per-member keys used, damage dealt, averages,
-participation, and week-over-week trends. The app runs on your machine, only when you
-start it; the data lives in your own Supabase project.
+participation, and week-over-week trends. Run it on your machine with `npm run dev`, and it is
+also **deployed on Vercel**; either way the data lives in your own Supabase project.
 
 - **Framework:** Next.js (App Router, TypeScript) + Tailwind CSS + Recharts
-- **Database:** **Supabase Postgres**, reached over the pooled connection URI in `DATABASE_URL`
+- **Database:** **Supabase Postgres**, reached over a pooled (`:6543`) connection URI — from
+  `DATABASE_URL` locally, or the hosting integration's `POSTGRES_URL` on Vercel
 - **Data in:** JSON upload/paste via **Clan Settings → Import data**, a CSV file from the CLI, or per-member week edits on a member's page
 - **Who can change it:** anyone can *read* every page; only the clan admin, signed in at `/login`, can change anything
 - **Run:** `npm run dev` whenever you want to see the stats
@@ -76,9 +77,9 @@ broken database is not one of them:
 
 | State | What you see |
 |-------|--------------|
-| **Live data** — `DATABASE_URL` set, migrations applied, rows imported | your real clan numbers |
+| **Live data** — connection string set, migrations applied, rows imported | your real clan numbers |
 | **Connected but empty** — database reachable, tables there, no rows yet (e.g. straight after a reset) | a genuinely **empty** dashboard: zeros and empty tables, not sample data |
-| **No `DATABASE_URL`** — or the tables don't exist yet because `npm run db:migrate` hasn't run | the bundled demo dataset (Weeks 20–24) |
+| **No connection string** — no `DATABASE_URL` locally (and no `POSTGRES_URL` on a deployment), or the tables don't exist yet because `npm run db:migrate` hasn't run | the bundled demo dataset (Weeks 20–24) |
 
 Anything else — wrong password, wrong host, a paused Supabase project, no network — shows an
 **error page**. The dashboard will never quietly show demo numbers dressed up as your clan's.
@@ -172,17 +173,32 @@ In **Clan Settings → Overview → Data Management**:
   empty state. The dashboard then renders **genuinely empty** — that's the
   connected-but-empty state above, not the demo data.
 
-## Sharing it later (optional)
+## It's also online (Vercel)
 
-The database already lives in Supabase and the write endpoints are already behind the
-admin login, so putting the dashboard online is a hosting step rather than a rewrite:
+The dashboard is deployed on Vercel from this repo. **`main` is the production branch and
+every push to it deploys automatically** — there is no separate release step.
 
-1. Deploy on [Vercel](https://vercel.com/new) with the four environment variables set —
-   `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `ADMIN_EMAIL` — never
-   committed.
-2. Sign in once on the deployed site and check that a small edit sticks.
+**You do not need to set `DATABASE_URL` on Vercel.** The Supabase↔Vercel integration creates
+`POSTGRES_URL`, and the app uses that when no `DATABASE_URL` is set. Only two things are set
+by hand there: `ADMIN_EMAIL`, and `DATABASE_URL` *if* you ever want a deployment pointed at a
+different database. `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` come from the integration
+under exactly the names the app already reads. Nothing is ever committed.
 
-Visitors will see every stat and no write controls; you'll see them once signed in.
+> **Careful: a preview deployment writes your real data.** There is one Supabase project, so
+> a branch/PR preview reads and writes the *same* rows as the live site — importing,
+> restoring or resetting from a preview URL changes the clan's real data, and nothing on the
+> page tells you which URL you're on. Do those on the production URL, and export a backup
+> first.
+
+Two more things worth knowing about the hosting:
+
+- **The free tier takes no backups.** *Clan Settings → Export backup* is your only one.
+- **A Supabase project pauses after about a week of inactivity.** The site then shows the
+  **error page**, not demo data — unpause the project in Supabase and it comes back.
+
+Visitors see every stat and no write controls; you see them once signed in. If the deployed
+site ever shows sample numbers, it isn't reaching the database — check the data source in
+**Clan Settings** rather than trusting that the page loaded.
 
 ## Project layout
 

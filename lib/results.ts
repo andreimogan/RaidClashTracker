@@ -59,11 +59,16 @@ export async function upsertMemberWeekResults(
   // Compared against "demo", never against the storage engine: lib/data.ts owns
   // which engine backs a live dataset, and no other file should know its name.
   if ((await getDataSource()) === "demo") {
-    // Demo mode's trigger is a missing DATABASE_URL, so naming db:migrate alone
-    // would send the reader to a command that fails immediately — the .env.local
-    // step comes first.
+    // Demo mode has two triggers — no connection string resolves (neither
+    // DATABASE_URL nor POSTGRES_URL), or the tables don't exist yet (42P01) — so
+    // the copy names both steps in order: point at a database, then migrate it.
+    // It also has to work in two places. Only an admin ever reads this (the route
+    // guards first), but that admin may be on the deployed site, where .env.local
+    // does not exist and db:migrate cannot run, so the deployment's own source of
+    // a connection string is named too. Reachable there via a paused free-tier
+    // project. See docs/reference/deployment.md.
     throw new ValidationError(
-      "Demo data is read-only. Connect the clan database first: set DATABASE_URL in .env.local, then run npm run db:migrate.",
+      "Demo data is read-only. Connect the clan database first — locally: set DATABASE_URL in .env.local, then run npm run db:migrate. On the deployed site the connection string comes from the Supabase integration as POSTGRES_URL.",
     );
   }
 

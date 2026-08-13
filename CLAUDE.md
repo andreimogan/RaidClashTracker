@@ -2,7 +2,7 @@
 
 # Raid Clash Tracker
 
-Next.js dashboard tracking a RAID: Shadow Legends clan's **Hydra Clash** and **Chimera Clash** performance — keys used, damage, participation, week-over-week trends. **Supabase Postgres** via postgres.js over the pooled (`:6543`) `DATABASE_URL`, plus **Supabase Auth** (`@supabase/ssr`) for sign-in only. **Reads are public; every write is admin-only** (one account, `ADMIN_EMAIL`). Runs locally; deployable to Vercel with env vars only, not yet deployed.
+Next.js dashboard tracking a RAID: Shadow Legends clan's **Hydra Clash** and **Chimera Clash** performance — keys used, damage, participation, week-over-week trends. **Supabase Postgres** via postgres.js over a pooled (`:6543`) connection URI, plus **Supabase Auth** (`@supabase/ssr`) for sign-in only. **Reads are public; every write is admin-only** (one account, `ADMIN_EMAIL`). Runs locally **and is deployed on Vercel**: per the owner's report (no agent can see the Vercel dashboard, so this is unverified from the repo) `main` is the production branch and auto-deploys on push, with one Supabase project shared by production, previews and local dev — **so a preview deployment writes production data** unless the environment is scoped per-environment. See `docs/reference/deployment.md`.
 
 ## Commands
 - dev: `npm run dev`
@@ -26,7 +26,8 @@ Next.js dashboard tracking a RAID: Shadow Legends clan's **Hydra Clash** and **C
 - Style only with the tokens and primitives from `app/globals.css` (`card`, `inset`, `fill-hydra`, …) — never hardcode colors.
 - All data writes funnel through one pipeline: parse → normalize (`lib/import.ts`, pure/client-safe) → `persist(payload, "upsert" | "replace")`. Never write SQL from routes or components.
 - **Writes are admin-only, guarded per route.** Every handler under `app/api/` opens with `const denied = await requireAdmin(); if (denied) return denied;` as the **first statement of its body** — a proxy cannot protect route handlers, so there is no matcher to rely on. No data mutation may move to a Server Action; `requireAdmin()` stays the single choke point. Pages hide (never disable) affordances a visitor can't use, via `readOnly` + `readOnlyReason`. See `docs/reference/auth.md`.
-- The demo fallback has exactly two triggers and must keep working for both: no `DATABASE_URL`, or tables that don't exist yet (Postgres `42P01`) → `lib/mock-data.ts`. Every other database failure must surface an error page — a reachable-but-empty database renders genuinely empty, and an outage must never render fake clan data as real.
+- The demo fallback has exactly two triggers and must keep working for both: no connection string, or tables that don't exist yet (Postgres `42P01`) → `lib/mock-data.ts`. Every other database failure must surface an error page — a reachable-but-empty database renders genuinely empty, and an outage must never render fake clan data as real.
+- **The app reads exactly four env vars:** the connection URI (`DATABASE_URL`, else the integration's `POSTGRES_URL` — first non-blank wins, so **Vercel needs no manual `DATABASE_URL`**), `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `ADMIN_EMAIL`. `POSTGRES_URL_NON_POOLING` (direct 5432) and `POSTGRES_PRISMA_URL` are never read; `SUPABASE_SECRET_KEY` exists in the Vercel environment and **must never be read from application code or given a `NEXT_PUBLIC_` prefix** — it bypasses RLS and every grant Phase 3a revoked. Adding a fifth variable is a decision, not a detail. See `docs/reference/deployment.md`.
 
 ## Deeper rules
 See `.claude/rules/` — path-scoped, they load only when relevant.
