@@ -1,1 +1,27 @@
 # Task ledgers live here (docs/tasks/<feature>.md), written at runtime by the team.
+#
+# RETENTION (set by the 2026-08-13 maintenance pass; apply it, don't re-derive it)
+#
+# A `status: done` ledger is kept for exactly one reason: its `## Context pack` is
+# the only artefact step 2 of the operating recipe can reuse to skip a survey. So
+# prune by whether the packed area has MOVED, never by age — a six-month-old pack
+# over untouched code is worth more than last week's pack over a rewritten module.
+#
+# Delete a done ledger when any of these is true:
+#   - it has no `## Context pack` at all (nothing to reuse; the build-log entry
+#     already carries the decisions and the why);
+#   - its pack's load-bearing facts are counterfactual — it freezes a seam, an
+#     export list or a file inventory that no longer exists. A counterfactual pack
+#     is worse than no pack: it reads as a survey and is a trap.
+# Keep it when the pack still describes current code, even if the order is old.
+#
+# Never delete anything from docs/build-log.md — that file is append-only and
+# permanent, and it is what makes deleting a ledger safe. Deleted ledgers also stay
+# in git history: `git show <commit>:docs/tasks/<file>` recovers any of them.
+#
+# Removed 2026-08-13 (all `status: done`, ~1,290 lines): phase1-retire-sheet-sync-
+# and-db-switcher, phase2-port-data-layer-to-supabase-postgres (both packs describe
+# the libSQL era and a `lib/db.ts` since rewritten twice — phase2's frozen seam even
+# specifies the `??` form the rules now forbid); member-links, member-week-edit,
+# import-clash-aware-week-tags, member-trend-week-over-week (no context pack; the
+# trend ledger's diagnosis describes behaviour its own order replaced).

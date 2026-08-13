@@ -34,23 +34,14 @@ Stack: **Next.js 16 (App Router, TypeScript) · Tailwind CSS v4 · Recharts · l
 
 - **Dataset** (from `loadDataset()`) is the architecture seam between storage and UI — pages consume it, `compute.ts` derives from it, and its shape is identical in every data state. No file outside `lib/data.ts` compares `getDataSource()` against a storage literal; call sites test `=== "demo"` / `!== "demo"`.
 - **Clash semantics:** Hydra = 3 keys/member, Wed→Wed (UTC); Chimera = 2 keys/member, Fri→Thu (UTC); both clashes of week *N* share a calendar week. Dates are derived, never user-entered.
-- **Deployment + environment matrix** (`docs/reference/deployment.md`) — Vercel from GitHub, `main` = production, auto-deploy on push; one Supabase project shared by production, previews and local dev. The connection URI resolves `DATABASE_URL` → `POSTGRES_URL` (first non-blank wins), and the pooled `:6543` port is **verified and reported, not assumed** — Vercel's marketplace page says `POSTGRES_URL` is the transaction pooler, Supabase's integration doc is silent on ports, so `lib/db.ts` logs one line (port + variable name only) rather than trusting either. `SUPABASE_SECRET_KEY` exists in the Vercel environment, is **never read by the app**, and bypasses RLS plus every grant Phase 3a revoked.
 - **Ingest semantics:** three entry points, one pipeline. In-app JSON import = replace of its `(week, clash)`; legacy nested JSON = upsert (back-compat); CSV file (`npm run import`) = upsert; member week edit = upsert of that member's two clash rows. Damage accepts number, `"16.61B"` shorthand, or `null` (benched → 0). **The terminal is not uniformly the "safe" half:** `npm run import:json` picks its mode from the file's shape, so a **flat array replaces** that `(week, clash)` (`scripts/import-json.ts:44`) exactly as the in-app path does, and only the nested `{ week, clashes }` object upserts (`scripts/import-json.ts:50`).
 
 ## The team
 
-Core (project-agnostic, committed with the scaffold):
-- **task-planner** — decomposes an order into a ledger with disjoint file ownership.
-- **flow-implementer** — generic implementer for slices no specialist covers.
-- **integrator** — merges parallel slices, resolves shared seams (`lib/types.ts`, `lib/data.ts` are the usual ones).
-- **flow-reviewer** — post-integration correctness + convention + doc-sync review.
-- **maintainer** — periodic docs/memory/map reconciliation (cadence: every 5 orders).
+Nine agents in `.claude/agents/`; each file's own `description` is the dispatch-routing signal, so this is a roster, not the routing table.
 
-Specialists (project-specific, generated 2026-07-06):
-- **data-pipeline-specialist** (write) — owns ingest-pipeline slices; guards replace/upsert semantics.
-- **ui-design-specialist** (write) — owns UI slices; enforces the token/primitive design system.
-- **db-migration-specialist** (write) — owns schema changes; every change ships as a new numbered, forward-only migration in `supabase/migrations/`.
-- **ux-specialist** (read-only) — reviews experience of a change across four lenses (flow & interaction, accessibility, state coverage, content & clarity); reports findings for ui-design-specialist to implement. Design-focused counterpart to flow-reviewer. Added 2026-07-06.
+- **Core** (scaffold): **task-planner** (ledger with disjoint file ownership) · **flow-implementer** (slices no specialist covers) · **integrator** (merges parallel slices; usual seams `lib/types.ts`, `lib/data.ts`) · **flow-reviewer** (correctness + convention + doc-sync, post-integration) · **maintainer** (docs/memory/map reconciliation, every 5 orders).
+- **Specialists** (project-specific, 2026-07-06). Write: **data-pipeline-specialist** (ingest slices; guards replace/upsert semantics) · **ui-design-specialist** (UI slices; enforces the token/primitive system) · **db-migration-specialist** (schema; every change is a new numbered forward-only file in `supabase/migrations/`). Read-only: **ux-specialist** (flow, accessibility, state coverage, content — reports findings for ui-design-specialist to implement; design counterpart to flow-reviewer).
 
 ## Open unknowns / blockers
 

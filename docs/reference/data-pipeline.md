@@ -2,18 +2,37 @@
 
 <!-- Kept current as code changes — updated, not appended. Owner: data-pipeline-specialist. -->
 
-All three ingest paths funnel through one pipeline; nothing else writes clash data.
+All three ingest paths end at one writer; nothing else writes clash data.
 
 ## The pipeline
 
+**Two payload builders reach one writer — not a single three-stage funnel.** The
+three-stage shorthand is wrong, and it has already propagated into other docs
+once: the member week edit runs **no normalizer** (`lib/results.ts:7` imports
+only *types* from `./import`, validates its own four fields, assembles the
+`ImportPayload` by hand at `lib/results.ts:120-132` and calls `persist` at
+`:133`). What all three paths genuinely share is `lib/parse.ts` and `persist()`,
+and those are the two that must stay shared.
+
 ```
-source (JSON / CSV file / member week edit)
-  → lib/parse.ts      parseCsv, parseDamage        (tolerant input parsing)
-  → lib/import.ts     normalizeFlatResults,        (pure, validating, client-safe —
-                      normalizeWeekJson,
-                      normalizeCsvRecords           no Node/DB imports)
-  → lib/persist.ts    persist(payload, mode)       (the only DB write; mode = "upsert" | "replace")
+BUILDER A — the import paths (JSON, CSV file)
+  lib/parse.ts     parseCsv, parseDamage        tolerant input parsing
+  lib/import.ts    normalizeFlatResults,        pure, validating, client-safe: no Node
+                   normalizeWeekJson,           or DB imports, because the import page
+                   normalizeCsvRecords          previews with them in the browser
+                                                        │
+BUILDER B — the member week edit                        │
+  lib/parse.ts     parseDamage only             ────────┤
+  lib/results.ts   its own validation, its own           │
+                   hand-built ImportPayload,             │
+                   NO normalizer                         │
+                                                         ▼
+THE WRITER — the only DB write, and there is exactly one
+  lib/persist.ts   persist(payload, "upsert" | "replace")
 ```
+
+A new ingest path picks one of the two builders. It does not add a third way to
+write.
 
 ## Entry points
 
@@ -27,7 +46,7 @@ Backup/restore (`app/api/backup`, `app/api/restore`) exports/replaces the whole 
 
 ### Backup file format
 
-`exportBackup()` writes one JSON object with `members`, `weeks`, `clash_results` and `clash_meta` arrays. The Postgres port changed two field shapes and deliberately preserved a third:
+`exportBackup()` writes one JSON object: an envelope of `app: "raid-clash-tracker"`, `version: 1` and `exportedAt` (ISO), plus the `members`, `weeks`, `clash_results` and `clash_meta` arrays (`lib/backup.ts:12-19`). **`restoreBackup()` validates only the three arrays** it needs — `members`, `weeks`, `clash_results` — so the envelope fields are documentation for a human reading the file, not a format check. The Postgres port changed two field shapes and deliberately preserved a third:
 
 - `created_at` now serialises as **ISO-8601** (`"2026-08-12T10:00:00.000Z"`) rather than `"2026-08-12 10:00:00"` — the column is `timestamptz`, which reads back as a JS `Date`.
 - `is_active` is now a real `true`/`false` instead of `1`/`0`.

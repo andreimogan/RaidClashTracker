@@ -11,7 +11,7 @@ disabled in Supabase, and authorization is a single case-insensitive comparison 
 `ADMIN_EMAIL`.
 
 Phase 3a closed the *database* to the publishable key (RLS + revoked grants — see
-`.claude/rules/database.md`). This layer closes the *application*.
+`.claude/rules/supabase-schema.md`). This layer closes the *application*.
 
 ## The four seams
 

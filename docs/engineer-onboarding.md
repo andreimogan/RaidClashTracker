@@ -230,7 +230,7 @@ Where things live:
 | [`components/`](../components) | UI; gestal.gg aesthetic, tokens in `app/globals.css` |
 | [`supabase/migrations/`](../supabase/migrations) | numbered, forward-only SQL |
 | [`scripts/`](../scripts) | four CLI entries; each imports `scripts/lib/load-env.ts` first and closes the pool so the process can exit |
-| [`.claude/rules/`](../.claude/rules) | path-scoped engineering rules — `.claude/rules/database.md`, `.claude/rules/data-pipeline.md`, `.claude/rules/rendering.md`, `.claude/rules/ui.md`, `.claude/rules/ux.md`. **Read the one matching the files you are about to change.** They are where the measured invariants live |
+| [`.claude/rules/`](../.claude/rules) | path-scoped engineering rules — `.claude/rules/database.md`, `.claude/rules/supabase-schema.md`, `.claude/rules/data-pipeline.md`, `.claude/rules/rendering.md`, `.claude/rules/ui.md`, `.claude/rules/ux.md`. **Read the one matching the files you are about to change.** They are where the measured invariants live |
 
 Domain constants you will meet immediately: key caps are Hydra **3**, Chimera **2** (`lib/constants.ts:7`), clan cap 30 (`lib/constants.ts:4`), and clash dates are **derived from the real schedules in UTC, never entered** ([`lib/week.ts`](../lib/week.ts)).
 
@@ -357,7 +357,7 @@ Consequences, all mandatory:
 - **Every new table in `public` needs its own `enable row level security`.** The default-privileges lever in `0002` revokes *grants* on future tables; it does not enable RLS on them.
 - **Create tables through migrations, never the dashboard's Table Editor.** A second default-ACL entry owned by `supabase_admin` still grants `anon`/`authenticated` on future tables, and it cannot be altered without superuser — so a table created through the UI can be born with the door open.
 
-Full measured detail, including the four lockdown levers and how each fails: `.claude/rules/database.md`.
+Full measured detail, including the four lockdown levers and how each fails: `.claude/rules/supabase-schema.md`.
 
 ### 12. "RLS enabled, no policies" is the intended end state — do not resolve the advisory
 
@@ -413,7 +413,8 @@ Recorded honestly rather than papered over. The first three were explicitly decl
 |---|---|
 | Use the app — import, backup, restore, reset, what a metric means | [`docs/user-guide.md`](./user-guide.md) |
 | See every dependency and the pipeline at a glance | [`README.md`](../README.md) |
-| Change anything that touches the database | `.claude/rules/database.md` |
+| Change the connection, the pool, or the demo fallback | `.claude/rules/database.md` |
+| Write a migration, or touch grants / RLS / a column type | `.claude/rules/supabase-schema.md` |
 | Change an ingest path | `.claude/rules/data-pipeline.md` + [`docs/reference/data-pipeline.md`](./reference/data-pipeline.md) |
 | Change a page's rendering | `.claude/rules/rendering.md` |
 | Touch auth | [`docs/reference/auth.md`](./reference/auth.md) |
