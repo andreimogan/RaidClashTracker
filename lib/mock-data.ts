@@ -1,6 +1,7 @@
 // Deterministic seed dataset that mirrors the design mockup.
-// Used as the zero-config fallback when no DATABASE_URL is set (or the tables
-// don't exist yet), and as the source rows pushed by `npm run seed`.
+// Used as the zero-config fallback when no connection string resolves — neither
+// DATABASE_URL nor POSTGRES_URL — or the tables don't exist yet, and as the
+// source rows pushed by `npm run seed`.
 import type { ClashMeta, ClashResult, Member, Week } from "./types";
 
 // --- tiny seeded PRNG so the dataset is stable across runs ---

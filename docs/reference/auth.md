@@ -250,8 +250,10 @@ that talks about the session itself. That is exactly how the Admin Access card o
 first shipped branching on `signedIn` alone and offered a "Sign in" link in demo mode,
 pointing at a page that says sign-in isn't configured. The card is now four-way; the
 components stay three-reason. **Demo + admin** is reachable whenever the auth env is set but
-the database is not — typo'd `DATABASE_URL`, unmigrated tables, or a **paused free-tier
-project** — and such a reader must be told both facts (you are the admin; writes are still
+no connection string resolves — typo'd `DATABASE_URL`, unmigrated tables, a **paused
+free-tier project**, or on the deployed site a missing/blank `POSTGRES_URL` because the
+Supabase↔Vercel integration was disconnected (that last route is the one Phase 4 actually
+shipped) — and such a reader must be told both facts (you are the admin; writes are still
 locked) and never told to sign in.
 
 **Known and deliberate:** on a member page, a demo + admin visitor sees the demo copy with no
@@ -265,8 +267,17 @@ the reader must do. Recorded so it reads as a decision rather than an oversight.
 | Reason | Copy says | Because the fix is |
 |---|---|---|
 | `"anonymous"` (live database, not signed in) | **"sign in"**, linking to `/login` | signing in |
-| `"demo"` (no `DATABASE_URL`, or `42P01`) | **"connect the clan database"** | configuring `DATABASE_URL` + `npm run db:migrate` |
+| `"demo"` (no connection string resolves, or `42P01`) | **"connect the clan database"** | connecting a database — locally `DATABASE_URL` + `npm run db:migrate`; on the deployed site, reconnecting the Supabase↔Vercel integration so `POSTGRES_URL` exists |
 | `null` + connected-but-empty | nothing read-only at all — **writes work** | importing a first week |
+
+**Why the "because" cell has two halves.** The rendered copy deliberately names
+`DATABASE_URL` and `npm run db:migrate` — it is the local operator's runbook, and
+`.claude/rules/ux.md` allows variable names and npm scripts in setup copy on purpose. But
+`db:migrate` **cannot be run on Vercel**, so on a deployment those words are the wrong
+instruction and the real fix is at the integration. Correct the *explanation* here, not the
+in-app copy: it is aimed at whoever runs the server, and in demo mode there is no clan data to
+protect. The durable sentence for any new copy is the state ("connect the clan database"), not
+the variable.
 
 **When both reasons apply, demo mode wins the copy.** Demo is the blocker that survives
 signing in, so telling a demo-mode visitor to sign in would send them to a dead end. On a
