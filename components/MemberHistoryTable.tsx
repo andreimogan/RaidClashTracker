@@ -1,10 +1,17 @@
 "use client";
 
 // Week-by-week history for the member detail page. Lists ALL tracked weeks
-// (absent weeks render em-dashes) and — when the app runs on a local database —
-// lets the user edit a week's four values (Hydra/Chimera keys + damage) in a
-// small dialog that POSTs to /api/members/[memberId]/results.
+// (absent weeks render em-dashes) and — when the app is connected to the clan
+// database rather than showing demo data — lets the user edit a week's four
+// values (Hydra/Chimera keys + damage) in a small dialog that POSTs to
+// /api/members/[memberId]/results.
+//
+// Editing needs BOTH a live database and the signed-in clan admin, so `readOnly`
+// has two possible causes and `readOnlyReason` says which — the note below is
+// the only explanation the reader gets for the missing pencils, and the demo
+// sentence is simply untrue for an anonymous visitor on a live database.
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Pencil, X } from "lucide-react";
 import { SectionTitle } from "./SectionTitle";
@@ -26,6 +33,8 @@ export interface HistoryRow {
   trendPct: number | null;
 }
 
+type ReadOnlyReason = "anonymous" | "demo" | null;
+
 export function MemberHistoryTable({
   rows,
   memberId,
@@ -33,6 +42,7 @@ export function MemberHistoryTable({
   weeksPresent,
   totalWeeks,
   readOnly,
+  readOnlyReason,
 }: {
   rows: HistoryRow[];
   memberId: string;
@@ -40,6 +50,7 @@ export function MemberHistoryTable({
   weeksPresent: number;
   totalWeeks: number;
   readOnly: boolean;
+  readOnlyReason: ReadOnlyReason;
 }) {
   const [editing, setEditing] = useState<HistoryRow | null>(null);
 
@@ -48,11 +59,22 @@ export function MemberHistoryTable({
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 p-5 pb-3">
         <SectionTitle>Week-by-Week History</SectionTitle>
         <div className="flex items-center gap-3">
-          {readOnly && (
-            <span className="text-xs text-faint">
-              Editing requires a local database — demo data is read-only
-            </span>
-          )}
+          {/* The only explanation the user gets for the missing edit pencils, so
+              it names the actual cause — never the other one. */}
+          {readOnly &&
+            (readOnlyReason === "demo" ? (
+              <span className="text-xs text-muted">
+                Editing needs the clan database connected — demo data is read-only
+              </span>
+            ) : (
+              <span className="text-xs text-muted">
+                Editing a week needs the clan admin account —{" "}
+                <Link href="/login" className="text-text underline underline-offset-2 hover:text-gold">
+                  sign in
+                </Link>{" "}
+                to change these numbers
+              </span>
+            ))}
           <span className="text-sm text-muted">
             {weeksPresent} of {totalWeeks} weeks
           </span>

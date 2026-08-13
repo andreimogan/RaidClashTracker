@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { parseCsv } from "../lib/parse";
 import { normalizeCsvRecords } from "../lib/import";
 import { persist } from "../lib/persist";
+import { closeDb } from "../lib/db";
 
 async function main() {
   const path = process.argv[2] || "data/import.csv";
@@ -14,4 +15,10 @@ async function main() {
   console.log(`CSV import complete: ${s.results} results across weeks ${s.weekNumbers.join(", ")}.`);
 }
 
-main().catch((err) => { console.error("Import failed:", err.message ?? err); process.exit(1); });
+main()
+  .catch((err) => {
+    console.error("Import failed:", err.message ?? err);
+    process.exitCode = 1;
+  })
+  // Close the pool or the process keeps the pooler connection open and hangs.
+  .finally(() => closeDb());

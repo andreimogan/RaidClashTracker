@@ -1,6 +1,6 @@
 // Deterministic seed dataset that mirrors the design mockup.
-// Used as the zero-config fallback until the local SQLite DB is seeded, and as
-// the source rows pushed by `npm run seed` (scripts/seed.ts).
+// Used as the zero-config fallback when no DATABASE_URL is set (or the tables
+// don't exist yet), and as the source rows pushed by `npm run seed`.
 import type { ClashMeta, ClashResult, Member, Week } from "./types";
 
 // --- tiny seeded PRNG so the dataset is stable across runs ---

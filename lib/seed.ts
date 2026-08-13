@@ -1,6 +1,6 @@
 // Server-only: build the bundled demo dataset as an import payload and write it
-// into a given DB. Shared by the seed CLI script and the in-app Test DB setup.
-import type { Client } from "@libsql/client";
+// into a given DB. Used by the seed CLI script (`npm run seed`), its only caller.
+import type { Db } from "./db";
 import { CLASH_META, CLASH_RESULTS, MEMBERS, WEEKS } from "./mock-data";
 import { persist, type PersistSummary } from "./persist";
 import type { ImportPayload, NormalizedRow, ProgressInfo, WeekInfo } from "./import";
@@ -32,6 +32,6 @@ export function buildDemoPayload(): ImportPayload {
   return { rows, weeks, progress };
 }
 
-export async function seedDemo(db?: Client): Promise<PersistSummary> {
+export async function seedDemo(db?: Db): Promise<PersistSummary> {
   return persist(buildDemoPayload(), "upsert", db);
 }

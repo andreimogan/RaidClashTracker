@@ -1,5 +1,5 @@
-// Pure parsing helpers shared by the file CSV importer, the Google Sheet sync,
-// and the JSON importer. No Node/DB imports — safe in the browser too.
+// Pure parsing helpers shared by the file CSV importer and the JSON importer.
+// No Node/DB imports — safe in the browser too.
 
 // Parse "16.61B" / "250M" / "900K" shorthand or a raw number into a number.
 // null / undefined / "" (e.g. a benched player's damage) → 0.

@@ -56,9 +56,14 @@ export async function upsertMemberWeekResults(
   input: unknown,
 ): Promise<PersistSummary> {
   // Demo mode has no writable tables — refuse before validating anything else.
-  if ((await getDataSource()) !== "sqlite") {
+  // Compared against "demo", never against the storage engine: lib/data.ts owns
+  // which engine backs a live dataset, and no other file should know its name.
+  if ((await getDataSource()) === "demo") {
+    // Demo mode's trigger is a missing DATABASE_URL, so naming db:migrate alone
+    // would send the reader to a command that fails immediately — the .env.local
+    // step comes first.
     throw new ValidationError(
-      "Demo data is read-only. Initialize a local database (npm run db:init) to edit results.",
+      "Demo data is read-only. Connect the clan database first: set DATABASE_URL in .env.local, then run npm run db:migrate.",
     );
   }
 
