@@ -7,6 +7,8 @@ import { formatDamage, formatKeys } from "@/lib/format";
 import { MemberCell } from "./MemberCell";
 import { TrendBadge } from "./TrendBadge";
 import { SectionTitle } from "./SectionTitle";
+import { useWeekPending } from "./WeekTransition";
+import { ClashTableRowsSkeleton, skeletonRowCount } from "./Skeleton";
 
 type SortKey =
   | "keysThisWeek"
@@ -25,6 +27,10 @@ export function ClashTable({
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("damageThisWeek");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
+  // Every column here is week-scoped (getPerformance(ds, selectedWeek, clashType)),
+  // so the rows swap — but only the rows. Search and sort keep working on the
+  // outgoing data, which is still the state the user will land back on.
+  const pending = useWeekPending();
 
   const onSort = (k: SortKey) => {
     if (k === sortKey) setDir((d) => (d === "desc" ? "asc" : "desc"));
@@ -52,6 +58,15 @@ export function ClashTable({
   ];
   const participationColor = (pct: number) =>
     pct >= 90 ? "text-up" : pct >= 60 ? "text-muted" : "text-down";
+
+  // An active search that already matches nobody is the one case where the
+  // row-count fallback lies: it would promise 8 rows the same filter will almost
+  // certainly reject again. Keep the "No players match" row standing instead.
+  // (A genuinely EMPTY week is different and does get placeholders — they stand
+  // for the unknown incoming week, not for the current empty one.)
+  const emptySearch = query.trim() !== "" && sorted.length === 0;
+  const showSkeleton = pending && !emptySearch;
+  const skeletonRows = skeletonRowCount(sorted.length);
 
   return (
     <section className="card-flush xl:flex xl:h-full xl:w-full xl:flex-col xl:overflow-hidden">
@@ -89,8 +104,9 @@ export function ClashTable({
               ))}
             </tr>
           </thead>
-          <tbody>
-            {sorted.map((r, i) => (
+          <tbody aria-busy={pending}>
+            {showSkeleton && <ClashTableRowsSkeleton rows={skeletonRows} />}
+            {!showSkeleton && sorted.map((r, i) => (
               <tr key={r.member.id} className="border-b border-border-soft last:border-0 hover:bg-panel-2/50">
                 <td className="px-3 py-2.5 pl-5 text-muted tabular-nums">{i + 1}</td>
                 <td className="px-3 py-2.5">
@@ -107,7 +123,7 @@ export function ClashTable({
                 </td>
               </tr>
             ))}
-            {sorted.length === 0 && (
+            {!showSkeleton && sorted.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-5 py-10 text-center text-muted">
                   No players match “{query}”.

@@ -8,6 +8,8 @@ import { formatDamage, formatKeys } from "@/lib/format";
 import { MemberCell } from "./MemberCell";
 import { TotalPerformanceTable } from "./TotalPerformanceTable";
 import { SectionTitle } from "./SectionTitle";
+import { useWeekPending } from "./WeekTransition";
+import { PerformanceRowsSkeleton, SkeletonLine, skeletonRowCount } from "./Skeleton";
 
 type SortKey =
   | "keysThisWeek"
@@ -76,6 +78,8 @@ export function PerformanceTable({
 
   const isTotal = scope === "total";
 
+  const pending = useWeekPending();
+
   const onSort = (k: SortKey) => {
     if (k === sortKey) setDir((d) => (d === "desc" ? "asc" : "desc"));
     else {
@@ -111,13 +115,32 @@ export function PerformanceTable({
   const participationColor = (pct: number) =>
     pct >= 90 ? "text-up" : pct >= 60 ? "text-muted" : "text-down";
 
+  // This component is the only thing that knows which tab is open, so the
+  // placeholder decision has to live here rather than in a wrapper: the Hydra
+  // and Chimera tabs are getPerformance(ds, selectedWeek, …) and DO move with
+  // the week, while "Total (All Weeks)" is getAllWeeksTotals(ds) and does NOT —
+  // swapping that tab would claim a load that is not happening. The second
+  // exclusion is an active search that already matches nobody: the row-count
+  // fallback would promise 8 rows the same filter will reject again, so the
+  // "No players match" row stands through the swap instead. (A genuinely EMPTY
+  // week still gets placeholders — they stand for the unknown incoming week.)
+  const emptySearch = query.trim() !== "" && rows.length === 0;
+  const showSkeleton = pending && !isTotal && !emptySearch;
+  const skeletonRows = skeletonRowCount(rows.length);
+
   return (
     <section className="card-flush xl:flex xl:h-full xl:w-full xl:flex-col xl:overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3 xl:shrink-0">
         <div>
           <SectionTitle>Clan Performance</SectionTitle>
           <p className="mt-1 text-sm text-muted">
-            {isTotal ? `All Weeks · ${allWeeksLabel}` : `Weekly · ${weekLabel}`}
+            {isTotal ? (
+              `All Weeks · ${allWeeksLabel}`
+            ) : showSkeleton ? (
+              <SkeletonLine className="w-56" />
+            ) : (
+              `Weekly · ${weekLabel}`
+            )}
           </p>
         </div>
         <div className="pill-group">
@@ -174,8 +197,13 @@ export function PerformanceTable({
               <HeaderCell label="Participation" sortKey="participationPct" active={sortKey === "participationPct"} dir={dir} onSort={onSort} className="pr-5" />
             </tr>
           </thead>
-          <tbody>
-            {rows.map((r, i) => (
+          {/* `pending`, NOT `showSkeleton` — the same expression ClashTable's
+              tbody uses. In the empty-search carve-out no placeholders are drawn,
+              but the region genuinely IS loading, and the two tables must not
+              report different busy states for one in-flight week change. */}
+          <tbody aria-busy={pending}>
+            {showSkeleton && <PerformanceRowsSkeleton rows={skeletonRows} />}
+            {!showSkeleton && rows.map((r, i) => (
               <tr
                 key={r.member.id}
                 className="border-b border-border-soft last:border-0 hover:bg-panel-2/50"
@@ -193,7 +221,7 @@ export function PerformanceTable({
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && (
+            {!showSkeleton && rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-5 py-10 text-center text-muted">
                   No players match “{query}”.

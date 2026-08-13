@@ -249,7 +249,7 @@ npm run lint    # exits 1; read below before you "fix" it
 
 Three of them are React Compiler diagnostics in `components/ImportPanel.tsx` (a `setState` in an effect, and two "existing memoization could not be preserved"); the rest come from untracked helper scripts under `.claude/scripts/`, which are not application code. **This is the approved baseline, not a regression** (`docs/reference/deployment.md:326-328`). Do not "clean it up" as a side quest — compare against this count, and only care if *your* files appear.
 
-`npm run build` must stay clean. If you change a data page, check the build's route table too: the five data pages must show as dynamic (`ƒ`), not static (`○`) — the reason is in the hazards.
+`npm run build` must stay clean. If you change a data page, check the build's route table too: all five of `/`, `/hydra`, `/chimera`, `/timeline` and `/members` must show as dynamic (`ƒ`), not static (`○`) — the reason, and why `/members` gets there differently from the other four, is in the hazards.
 
 ## Shipping a change
 
@@ -367,9 +367,11 @@ The Supabase dashboard flags the four tables because zero policies means nothing
 
 Real values reach ~5.8e10, about 27× the `int4` ceiling, so the column is `bigint` — and postgres.js hands `bigint` back as a **string**, not a number (`lib/data.ts:37-44` types the row that way). **Coercion belongs in `lib/data.ts`'s row mappers and nowhere else** (`lib/data.ts:121`). `lib/compute.ts` must be able to assume it is working with numbers. Do the same check before you choose any new column type: verify what it reads back as.
 
-### 14. The five data pages are dynamic *only* because they `await searchParams`
+### 14. Four data pages are dynamic *only* because they `await searchParams` — `/members` is the exception
 
-`/`, `/hydra`, `/chimera`, `/timeline` and `/members` each destructure `?week=` out of `searchParams: Promise<{ week?: string }>`, and **that `await` is the entire reason a request-time database read happens.** None of the five declares `export const dynamic = "force-dynamic"`, and `next.config.ts` is empty, so nothing else is holding them dynamic.
+`/`, `/hydra`, `/chimera` and `/timeline` each destructure `?week=` out of `searchParams: Promise<{ week?: string }>`, and **that `await` is the entire reason a request-time database read happens.** None of those four declares `export const dynamic = "force-dynamic"`, and `next.config.ts` is empty, so nothing else is holding them dynamic.
+
+**`/members` is the explicit-declaration case, and it is the one that looks deletable.** Its week selector changed nothing (the roster aggregates every week by design) and was removed on 2026-08-13, so the page reads no `searchParams` at all. It stays dynamic solely because of `export const dynamic = "force-dynamic"` at `app/members/page.tsx:15`, which carries a comment saying it is load-bearing. **Do not tidy it away** as cargo cult on a page that awaits nothing — deleting it flips `/members` from `ƒ` to `○` with no error and no warning. The worked example is in `.claude/rules/rendering.md`.
 
 A page that stopped reading `searchParams` would **silently become statically prerendered** and bake one build's rows into HTML served to every visitor — or bake the **demo dataset**, if the build environment had no connection string. No error, no warning; the only symptom is numbers that never change. The fallback would not have widened, it would have been *published*.
 

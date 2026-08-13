@@ -1,24 +1,21 @@
 import { loadDataset } from "@/lib/data";
-import { activeMemberIds, latestWeekNumber, sortedWeeks } from "@/lib/compute";
+import { activeMemberIds } from "@/lib/compute";
 import { TopBar, type ExportData } from "@/components/TopBar";
 import { MemberCell } from "@/components/MemberCell";
 import { SectionTitle } from "@/components/SectionTitle";
-import { formatDamage, formatDateRange, formatKeys } from "@/lib/format";
+import { formatDamage, formatKeys } from "@/lib/format";
 
-export default async function MembersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ week?: string }>;
-}) {
-  const { week } = await searchParams;
+// REQUIRED, not incidental. This roster aggregates every week, so the page reads
+// no `searchParams` and renders no week picker — and awaiting `searchParams` is
+// the *only* thing that makes the other data pages dynamic (.claude/rules/rendering.md).
+// Without this line the page silently prerenders to static HTML: one build's
+// roster served to every visitor, or the demo dataset if the build environment
+// had no connection string. No error, no warning — the build's route table (`ƒ`,
+// not `○`) is the only proof. Do not remove it as dead code.
+export const dynamic = "force-dynamic";
+
+export default async function MembersPage() {
   const ds = await loadDataset();
-  const weeks = sortedWeeks(ds);
-  const weekNumbers = weeks.map((w) => w.weekNumber);
-  const weekRanges = Object.fromEntries(
-    weeks.map((w) => [w.weekNumber, formatDateRange(w.startDate, w.endDate)]),
-  );
-  const requested = Number(week);
-  const selectedWeek = weekNumbers.includes(requested) ? requested : latestWeekNumber(ds);
   const activeIds = activeMemberIds(ds);
 
   const summaries = ds.members
@@ -64,7 +61,9 @@ export default async function MembersPage({
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <TopBar title="Members" weekNumbers={weekNumbers} weekRanges={weekRanges} currentWeek={selectedWeek} exportData={exportData} />
+      {/* No week props: the roster is all-weeks by design (docs/user-guide.md),
+          so TopBar renders the title and the CSV export only. */}
+      <TopBar title="Members" exportData={exportData} />
       <section className="card-flush">
         <div className="flex items-center justify-between p-5 pb-3">
           <SectionTitle>Roster</SectionTitle>

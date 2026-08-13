@@ -12,7 +12,11 @@ export function DonutSummary({ summary }: { summary: KeyUsageSummary }) {
   ];
 
   return (
-    <section className="card">
+    // `xl:h-full` because this is a grid item on `/` sharing a row with
+    // TimelineStrip (the taller of the two); it stretches, and once a
+    // PendingSwap <div> sits between it and the grid, only that div inherits
+    // the row height — the card has to claim it explicitly or the row gaps.
+    <section className="card xl:h-full">
       <SectionTitle>Key Usage Summary</SectionTitle>
 
       <div className="mt-3 flex items-center gap-5">

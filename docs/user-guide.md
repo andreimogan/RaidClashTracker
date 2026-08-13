@@ -116,7 +116,7 @@ So on a Hydra table, **one key used = 33%**, two = 67%, three = 100%. On Chimera
 
 | Where | Formula | Code |
 |---|---|---|
-| `/members` → Roster table | weeks with at least one key used ÷ weeks the member has any row | `app/members/page.tsx:87`, `app/members/page.tsx:39` |
+| `/members` → Roster table | weeks with at least one key used ÷ weeks the member has any row | `app/members/page.tsx:86`, `app/members/page.tsx:36` |
 
 **These are not the same number and they do not move together.** A member who shows up
 every week and burns exactly one Hydra key has **33%** on the Hydra table and **100%** on
@@ -412,7 +412,7 @@ Reading the dashboard requires no account. A clanmate opening your Vercel deploy
 - **Every table control** — sorting, the player search box, the Active/Former filter, and
   the week selector with its prev/next arrows.
 - **The CSV Export button on every data page** — Home, Hydra, Chimera, Timeline, Members
-  and each member page (`components/ExportButton.tsx:26-33`, `components/TopBar.tsx:74`,
+  and each member page (`components/ExportButton.tsx:26-33`, `components/TopBar.tsx:56`,
   `app/members/[memberId]/page.tsx:233`). Settings and the sign-in page have none.
   Exports are computed in their browser from what is already rendered; there is no admin
   gate on them.

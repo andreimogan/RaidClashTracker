@@ -285,12 +285,16 @@ set of routes and their markers instead.
 ○ (Static) prerendered as static content · ƒ (Dynamic) server-rendered on demand
 ```
 
-**The five data pages — `/`, `/hydra`, `/chimera`, `/timeline`, `/members` — are dynamic only
-because each one `await`s `searchParams` for its `?week=`.** None of them declares
-`export const dynamic = "force-dynamic"`; **among pages**, only `/settings`, `/login` and
-`/members/[memberId]` do. (Six `app/api/*/route.ts` files declare it too — `backup`, `import`,
+**The four `searchParams` data pages — `/`, `/hydra`, `/chimera`, `/timeline` — are dynamic only
+because each one `await`s `searchParams` for its `?week=`.** None of those four declares
+`export const dynamic = "force-dynamic"`; **among pages**, only `/settings`, `/login`,
+`/members/[memberId]` and `/members` do. The fifth data page, `/members`, reads no
+`searchParams` at all since 2026-08-13 and is held dynamic by that explicit declaration
+instead (`app/members/page.tsx:15`; the worked example in `.claude/rules/rendering.md` records
+why, and why a vestigial `await` kept "just to stay dynamic" was rejected).
+(Six `app/api/*/route.ts` files declare it too — `backup`, `import`,
 `reset`, `restore`, `members/[memberId]/avatar`, `members/[memberId]/results` — so a
-repo-wide grep returns nine hits, not three. `next.config.ts` is empty, so `cacheComponents`
+repo-wide grep returns ten hits, not four. `next.config.ts` is empty, so `cacheComponents`
 is off and nothing else is holding these pages dynamic either.) On a deployment the
 consequence is sharper than locally: a page
 that lost its `searchParams` would become statically prerendered and **bake one build's rows

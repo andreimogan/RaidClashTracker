@@ -11,6 +11,8 @@ import { ClashCard } from "./ClashCard";
 import { ClashTable } from "./ClashTable";
 import { WeeklyBarChart } from "./WeeklyBarChart";
 import { TopBar, type ExportData } from "./TopBar";
+import { PendingSwap } from "./WeekTransition";
+import { ClashCardSkeleton } from "./Skeleton";
 import { formatDamage, formatDateRange, formatKeys } from "@/lib/format";
 import { clashWindow } from "@/lib/week";
 
@@ -66,11 +68,16 @@ export async function ClashDetailView({
         <TopBar title={title} weekNumbers={weekNumbers} weekRanges={weekRanges} currentWeek={selectedWeek} exportData={exportData} />
       </div>
       <div className="grid grid-cols-1 gap-5 xl:shrink-0 xl:grid-cols-3">
-        <div className="xl:col-span-2 xl:h-full">
+        {/* Week-scoped: getOverview(ds, selectedWeek, clashType). */}
+        <PendingSwap className="xl:col-span-2 xl:h-full" skeleton={<ClashCardSkeleton clashType={clashType} />}>
           <ClashCard stats={overview} dateRange={dateRange} />
-        </div>
+        </PendingSwap>
+        {/* WeeklyBarChart reads getTimeline(ds) — all weeks; `currentWeek` only
+            highlights a bar, so it must NOT flash. */}
         <WeeklyBarChart timeline={timeline} clashType={clashType} currentWeek={selectedWeek} />
       </div>
+      {/* ClashTable swaps its own rows (header + search + sort stay live), so it
+          is not wrapped here. */}
       <div className="xl:flex xl:min-h-0 xl:flex-1">
         <ClashTable rows={rows} clashType={clashType} />
       </div>

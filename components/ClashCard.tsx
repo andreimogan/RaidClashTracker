@@ -2,7 +2,13 @@ import { Flame, Cat } from "lucide-react";
 import type { OverviewStats } from "@/lib/types";
 import { formatDamage, formatKeys } from "@/lib/format";
 
-const THEME = {
+/**
+ * The clash accent pairing — Hydra warm amber, Chimera steel-blue.
+ * Exported because `components/Skeleton.tsx` renders this card's week-independent
+ * chrome (icon + label) for real during a week swap and must not hand-copy it:
+ * a renamed label or a swapped icon would otherwise survive in the placeholder.
+ */
+export const THEME = {
   hydra: {
     label: "HYDRA CLASH",
     Icon: Flame,

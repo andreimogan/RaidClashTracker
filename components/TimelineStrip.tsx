@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Flame, Cat } from "lucide-react";
 import type { TimelineWeek } from "@/lib/types";
 import { formatDamage, formatDateRange } from "@/lib/format";
 import { SectionTitle } from "./SectionTitle";
+import { useStartWeekChange } from "./WeekTransition";
 
 function WeekCard({
   weekNumber,
@@ -57,11 +58,18 @@ export function TimelineStrip({
   const pathname = usePathname();
   const params = useSearchParams();
   const scrollRef = useRef<HTMLDivElement>(null);
+  // These week cards are the app's SECOND week-change entry point (TopBar is the
+  // other) and they change exactly the same data, so they run through the same
+  // shared transition — a bare router.push here would change the whole page with
+  // no spinner and no announcement. This strip's own contents are NOT swapped
+  // while a change is in flight: it renders getTimeline(ds), which covers every
+  // week, and `currentWeek` only moves the highlight.
+  const startWeekChange = useStartWeekChange();
 
   const go = (week: number) => {
     const next = new URLSearchParams(params);
     next.set("week", String(week));
-    router.push(`${pathname}?${next.toString()}`);
+    startWeekChange(week, () => router.push(`${pathname}?${next.toString()}`));
   };
 
   const scroll = (dir: -1 | 1) =>

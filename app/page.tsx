@@ -15,6 +15,8 @@ import { DonutSummary } from "@/components/DonutSummary";
 import Link from "next/link";
 import { Inbox } from "lucide-react";
 import { TopBar, type ExportData } from "@/components/TopBar";
+import { PendingSwap } from "@/components/WeekTransition";
+import { ClashCardSkeleton, DonutSummarySkeleton } from "@/components/Skeleton";
 import { formatDamage, formatDateRange, formatKeys } from "@/lib/format";
 import { clashWindow } from "@/lib/week";
 
@@ -104,9 +106,15 @@ export default async function DashboardPage({
         </div>
       )}
 
+      {/* Week-scoped: getOverview(ds, selectedWeek, …). PendingSwap takes these
+          as `children`, so the cards stay server-rendered. */}
       <div className="grid grid-cols-1 gap-5 xl:shrink-0 xl:grid-cols-2">
-        <ClashCard stats={hydra} dateRange={clashRange("hydra")} />
-        <ClashCard stats={chimera} dateRange={clashRange("chimera")} />
+        <PendingSwap className="xl:h-full" skeleton={<ClashCardSkeleton clashType="hydra" />}>
+          <ClashCard stats={hydra} dateRange={clashRange("hydra")} />
+        </PendingSwap>
+        <PendingSwap className="xl:h-full" skeleton={<ClashCardSkeleton clashType="chimera" />}>
+          <ClashCard stats={chimera} dateRange={clashRange("chimera")} />
+        </PendingSwap>
       </div>
 
       <div className="xl:flex xl:min-h-0 xl:flex-1">
@@ -114,10 +122,14 @@ export default async function DashboardPage({
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:shrink-0 xl:grid-cols-3">
+        {/* TimelineStrip is deliberately NOT swapped: getTimeline(ds) covers
+            every week and `currentWeek` only moves a highlight. */}
         <div className="xl:col-span-2 xl:h-full">
           <TimelineStrip data={timeline} currentWeek={selectedWeek} />
         </div>
-        <DonutSummary summary={keyUsage} />
+        <PendingSwap className="xl:h-full" skeleton={<DonutSummarySkeleton />}>
+          <DonutSummary summary={keyUsage} />
+        </PendingSwap>
       </div>
     </div>
   );
