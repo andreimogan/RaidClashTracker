@@ -8,10 +8,11 @@ paths:
   - "scripts/**"
 ---
 
-- Every ingest path (in-app JSON import, CSV file, member week edit) funnels through the one pipeline: `lib/parse.ts` (parseCsv/parseDamage) → `lib/import.ts` (normalize*, **pure and client-safe** — no Node/DB imports) → `lib/persist.ts` `persist(payload, "upsert" | "replace")`. Never bypass it with direct SQL.
+- Every ingest path (in-app JSON import, CSV file, member week edit) funnels through the one pipeline: `lib/parse.ts` (parseCsv/parseDamage) → an `ImportPayload` → `lib/persist.ts` `persist(payload, "upsert" | "replace")`. Never bypass it with direct SQL. **The middle stage has two payload builders, not one, and the three-stage shorthand hides it:** the two import paths call the `normalize*` functions in `lib/import.ts` (**pure and client-safe** — no Node/DB imports), while the **member week edit runs no normalizer at all** — `lib/results.ts:7` imports only *types* from `./import`, validates its own four fields, assembles the payload by hand (`lib/results.ts:120-132`) and calls `persist(payload, "upsert")` directly (`lib/results.ts:133`). `lib/parse.ts` and `persist()` are what all three genuinely share, and they are the two that must stay shared. A new ingest path picks one of the two builders; it does not add a third way to write.
 - Semantics are load-bearing:
-  - **In-app JSON import = replace** of the chosen `(week, clash)` — it's the week's complete standings.
-  - **CSV file import = upsert** — it adds and updates rows without clearing the rest of the week.
+  - **In-app JSON import = replace** of the chosen `(week, clash)` — it's the week's complete standings. The delete is scoped to the `(week, clash)` pairs **present in the payload**, so importing Hydra never touches that week's Chimera.
+  - **CSV file import (`npm run import`) = upsert** — it adds and updates rows without clearing the rest of the week (`scripts/import-csv.ts:14`).
+  - **`npm run import:json` chooses its mode from the file's SHAPE, so the terminal is not uniformly the "safe" half:** a **flat array replaces** that `(week, clash)` exactly as the in-app path does (`scripts/import-json.ts:44`), and only the nested `{ week, clashes }` object upserts (`scripts/import-json.ts:50`). Anything that documents the CLI as "the upsert one" is wrong.
   - **Member week edit = upsert** of that member's two clash rows for one existing week; member and week must already exist, and its validation is stricter than the import paths' (see `docs/reference/data-pipeline.md`).
   - **Legacy nested `{ week, clashes }` JSON = upsert** (back-compat; keep it working).
 - `damage_dealt` accepts a number, `"16.61B"`-style shorthand, or `null` (benched → 0).
@@ -24,7 +25,7 @@ paths:
   if (denied) return denied;
   ```
 
-  All six (`import`, `restore`, `reset`, `backup`, `members/[id]/results`, `members/[id]/avatar`) return a frozen `401 {"ok":false,"error":"Sign in as the clan admin to do that."}` to anyone else, and issue **no database query** on that path. `backup` is gated as an **exfil** route, not a read — it exports the whole dataset. **A new route under `app/api/` is not finished until it carries that guard**; there is no matcher covering it, because a proxy cannot protect route handlers (`docs/reference/auth.md`).
+  All six (`import`, `restore`, `reset`, `backup`, `members/[memberId]/results`, `members/[memberId]/avatar` — the segment is `[memberId]`, not `[id]`) return a frozen `401 {"ok":false,"error":"Sign in as the clan admin to do that."}` to anyone else, and issue **no database query** on that path. `backup` is gated as an **exfil** route, not a read — it exports the whole dataset. **A new route under `app/api/` is not finished until it carries that guard**; there is no matcher covering it, because a proxy cannot protect route handlers (`docs/reference/auth.md`).
 - **No data mutation may move to a Server Action.** `requireAdmin()` is the single authorization choke point, and Server Functions are reachable by direct POST, so a second write surface would be a second thing to guard. The only `"use server"` file in the repo is `app/login/actions.ts` (sign-in/sign-out; auth cookies, no application data).
 - **Split driver errors from validation errors by PROVENANCE, not by the error's shape.** Three patterns exist in the tree, and only the first two are safe:
   - **Provenance (best, and the one to copy):** wrap the calls that can reach Postgres so a database failure arrives as a distinct local type, and test that. Validation copy then survives **by construction** — see `app/api/import/route.ts` and `app/api/restore/route.ts` (`fromDatabase()` → `DatabaseFailure`).

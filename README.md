@@ -1,213 +1,219 @@
 # Raid Clash Tracker
 
-A web dashboard for tracking our RAID: Shadow Legends clan's **Hydra Clash**
-and **Chimera Clash** performance — per-member keys used, damage dealt, averages,
-participation, and week-over-week trends. Run it on your machine with `npm run dev`, and it is
-also **deployed on Vercel**; either way the data lives in your own Supabase project.
+A web dashboard that tracks one RAID: Shadow Legends clan's weekly **Hydra Clash** and
+**Chimera Clash** results — per-member keys used, damage dealt, averages, participation and
+week-over-week trends. It is a Next.js App Router app over a **Supabase Postgres** database,
+reached through a pooled (`:6543`) connection URI, with **Supabase Auth** used for sign-in
+only. **Every page is readable by anyone; every write belongs to one admin account** — and
+with no database configured at all it still runs, on a bundled demo dataset.
 
-- **Framework:** Next.js (App Router, TypeScript) + Tailwind CSS + Recharts
-- **Database:** **Supabase Postgres**, reached over a pooled (`:6543`) connection URI — from
-  `DATABASE_URL` locally, or the hosting integration's `POSTGRES_URL` on Vercel
-- **Data in:** JSON upload/paste via **Clan Settings → Import data**, a CSV file from the CLI, or per-member week edits on a member's page
-- **Who can change it:** anyone can *read* every page; only the clan admin, signed in at `/login`, can change anything
-- **Run:** `npm run dev` whenever you want to see the stats
+This file is the **hub**: what the pieces are, how they fit, and where the real
+documentation lives. It deliberately does not teach setup or day-to-day use.
 
-The app runs with **bundled demo data out of the box** — with no `DATABASE_URL` set you can
-click through the whole dashboard. Point it at your Supabase database to track your real clan data.
+| If you want to | Read |
+|---|---|
+| **Use the app** — import a week, back up, restore, reset, what a metric actually means | [`docs/user-guide.md`](docs/user-guide.md) |
+| **Work on the app** — clone → running → deployed, plus the 16 things that bite | [`docs/engineer-onboarding.md`](docs/engineer-onboarding.md) |
+| Configure environments, or debug a deployment | [`docs/reference/deployment.md`](docs/reference/deployment.md) |
+| Understand the ingest pipeline in engineering terms | [`docs/reference/data-pipeline.md`](docs/reference/data-pipeline.md) |
+| Understand the admin-only rule | [`docs/reference/auth.md`](docs/reference/auth.md) |
+| Style anything | [`docs/reference/design-system.md`](docs/reference/design-system.md) |
+| Know the current architecture, or why a decision was made | [`docs/project-map.md`](docs/project-map.md) · [`docs/build-log.md`](docs/build-log.md) |
 
-## Quick start (demo mode)
+## Quick start
 
 ```bash
 npm install
-npm run dev
-# open http://localhost:3000
+npm run dev                 # http://localhost:3000 — demo data, no configuration needed
+cp .env.example .env.local  # then fill it in: .env.example is the setup document
+npm run db:migrate          # apply supabase/migrations/*.sql in order; safe to re-run
+npm run build               # the verify step — there is no test suite
 ```
 
-With no `DATABASE_URL` set, the dashboard shows the bundled sample dataset (Weeks 20–24).
-Clan Settings shows whether you're reading the demo data or your own database.
+Everything those five lines gloss over — the pooler-host trap, `prepare: false`, Node
+versions, signing in — is in [`docs/engineer-onboarding.md`](docs/engineer-onboarding.md)
+and [`.env.example`](.env.example). Note that `npm run lint` **exits 1 by design** (9 errors
++ 1 warning is the approved baseline).
 
-## Use your real data (Supabase Postgres)
+## Which numbers you are looking at
 
-```bash
-cp .env.example .env.local          # then set DATABASE_URL to your Supabase pooled URI
-npm run db:migrate                  # apply supabase/migrations/*.sql in order
-npm run seed                        # optional sample data — skip it if you're importing
-                                    # real weeks; the samples occupy Weeks 20–24
-# ...or import your own data:
-npm run import -- data/sample-import.csv
-npm run dev                         # app now reads from Supabase
-```
+Three honest states, and a broken database is not one of them:
 
-`DATABASE_URL` is the only setting needed to **read** your own data — the **pooled**
-(`:6543`) `postgresql://` URI from your Supabase project's connection settings.
-`npm run db:migrate` is safe to re-run. To **change** data you also need the three sign-in
-settings below. `.env.local` is gitignored — keep it that way, it holds your database
-password.
+| State | What renders |
+|---|---|
+| **Live** — connection string set, migrations applied, rows imported | your real clan numbers |
+| **Connected but empty** — reachable and migrated, no rows yet (e.g. after a Reset) | a **genuinely empty** dashboard, not sample data |
+| **No connection string, or tables not created yet** (`42P01`) | the bundled demo dataset, **Weeks 20–24** ([`lib/mock-data.ts:18-24`](lib/mock-data.ts)) |
 
-## Signing in (who can change data)
-
-Every page is readable without signing in. Everything that *writes* — importing a week,
-editing a member's week, restoring, resetting, and downloading a backup — needs the single
-clan-admin account.
-
-```bash
-# in .env.local, alongside DATABASE_URL (see .env.example for the exact shape)
-SUPABASE_URL=...                 # your Supabase project URL
-SUPABASE_PUBLISHABLE_KEY=...     # the sb_publishable_... key — never the secret one
-ADMIN_EMAIL=...                  # the one address allowed to write
-```
-
-Create that one user in **Supabase → Authentication → Users**, keep **signups disabled**
-(that is what makes `ADMIN_EMAIL` mean anything), then sign in at **`/login`** — reachable
-from Clan Settings, or by typing the address. There is no sign-in link in the sidebar on
-purpose: there's exactly one account, and a public dashboard shouldn't advertise a login
-door. Sign out from **Clan Settings → Overview**.
-
-Until you sign in, the write controls aren't shown at all — no import form, no edit pencils,
-no avatar buttons, no Export/Restore/Reset. Signed out, the pages simply read.
-
-**If those three settings are missing or wrong, the app fails closed:** reading keeps
-working exactly as before, and writing is locked. So if your data is readable but you can't
-sign in, suspect these three before suspecting anything else.
-
-## Which data you're looking at
-
-The dashboard is honest about where its numbers come from. It has three states, and a
-broken database is not one of them:
-
-| State | What you see |
-|-------|--------------|
-| **Live data** — connection string set, migrations applied, rows imported | your real clan numbers |
-| **Connected but empty** — database reachable, tables there, no rows yet (e.g. straight after a reset) | a genuinely **empty** dashboard: zeros and empty tables, not sample data |
-| **No connection string** — no `DATABASE_URL` locally (and no `POSTGRES_URL` on a deployment), or the tables don't exist yet because `npm run db:migrate` hasn't run | the bundled demo dataset (Weeks 20–24) |
-
-Anything else — wrong password, wrong host, a paused Supabase project, no network — shows an
-**error page**. The dashboard will never quietly show demo numbers dressed up as your clan's.
-
-Whether you're **signed in** is a separate question from which of those three you're looking
-at. Demo data is read-only for everybody — signing in doesn't unlock it, connecting a
-database does. On a live database, signing in is what unlocks the write controls.
+Anything else — wrong password, wrong host, a paused Supabase project, no network —
+renders the **error page**. The dashboard never quietly serves demo numbers as real.
+Clan Settings names which state you are in; "the page loaded" is not evidence of anything.
 
 ## Pages
 
-| Route | What it shows |
-|-------|---------------|
-| `/` | Overview: both clash summary cards, clan performance table, timeline, key-usage donut |
-| `/hydra`, `/chimera` | Per-clash overview, weekly damage chart, player breakdown |
-| `/timeline` | Weekly totals across all tracked weeks |
-| `/members` | Roster with aggregate stats |
-| `/settings` | Clan info + data-source status |
+| Route | What it is |
+|---|---|
+| `/` | Overview: both clash cards, clan performance table, timeline strip, key-usage donut |
+| `/hydra`, `/chimera` | One clash: card, weekly bar chart, sortable Player Breakdown |
+| `/timeline` | Weekly Hydra vs Chimera totals across every tracked week |
+| `/members` | Roster, active first then former, with lifetime totals |
+| `/members/[memberId]` | One member: lifetime and per-clash cards, week-by-week history, avatar, per-week edit |
+| `/settings` | Clan Settings: counters, data-source status, admin access, **Import data** tab, Data Management |
+| `/import` | A **307 redirect to `/settings`** ([`app/import/page.tsx:5`](app/import/page.tsx)) — the import UI moved into the Settings tab |
+| `/login` | Sign-in. **Deliberately absent from the sidebar**: one account, and a public dashboard should not advertise a login door |
 
-A week selector (top-right) drives the data; **Export** downloads the current view as CSV.
+Two labels mean **two different things depending on the page** — `Participation` (key usage
+vs attendance) and `Trend` (damage-per-key vs total damage), with nothing on screen saying
+so. The full breakdown, with every render site, is in
+[`docs/user-guide.md`](docs/user-guide.md).
 
-**Metrics:** each clash card's **Progress** bar is clan **key usage** — keys used vs the
-maximum possible (`roster × max keys`; **Hydra 3, Chimera 2** keys per member), so 100%
-means everyone used all their keys. In the performance table, **Participation** is a
-member's keys used ÷ that clash's max keys (e.g. 1 of 3 Hydra keys = 33%).
+## How a change reaches production
 
-## Getting weekly data in
-
-Three ways to load a week's numbers — all funnel through the same normalize +
-persist pipeline. The in-app JSON path lives under **Clan Settings → Import data**.
-
-### JSON import (upload/paste) — the everyday path
-Open **Clan Settings → Import data → JSON Import**. Paste/upload a single clash's standings as a **flat
-array**, choose the **week** (defaults to the current clash week) and the **clash**
-(Hydra/Chimera), preview, then **Import**. Each import
-**replaces** that (week, clash), so it's the week's complete standings. See
-[`data/sample-week-flat.json`](data/sample-week-flat.json) — the same shape as the
-in-game export.
-
-Dates aren't entered by hand — they're derived from each clash's real schedule
-(UTC) and shown read-only:
-
-- **Hydra** runs **Wed → the following Wed** (starts Wed 14:00, ends Wed 08:00 UTC).
-- **Chimera** runs **Fri → the following Thu** (starts Fri 11:30, ends Thu 11:30 UTC).
-
-Both clashes in week _N_ belong to the same calendar week (Chimera's Friday is two
-days after Hydra's Wednesday). The dashboard's clash cards/detail show each clash's
-own date range.
-
-```json
-[
-  { "rank": 1, "player_name": "[ΚΛΕΩ] Hell", "damage_dealt": "16.61B", "keys_used": 3 },
-  { "rank": 5, "player_name": "Smash69",     "damage_dealt": null,     "keys_used": 0 }
-]
+```mermaid
+flowchart LR
+  DEV["Local dev<br/>npm run dev"] --> COMMIT["git commit"]
+  COMMIT --> GH["GitHub repo"]
+  GH -->|"push to main"| PROD["Vercel — Production"]
+  GH -->|"any other branch / PR"| PREV["Vercel — Preview"]
+  PROD --> SB[("ONE Supabase Postgres project<br/>pooled :6543")]
+  DEV -->|".env.local"| SB
+  PREV -.->|"writes the SAME production rows"| SB
 ```
 
-`damage_dealt` accepts a number or `16.61B` shorthand, or `null` (benched → 0).
-Terminal equivalent (week defaults to current):
+**Per the owner's report** — no agent working in this repo can see the Vercel dashboard, so
+this is reported, not measured — `main` is the production branch and every push to it
+deploys automatically, with no separate release step.
 
-```bash
-npm run import:json -- Database/test-week.json --clash hydra [--week 26]
+**The dotted edge is the one to remember.** There is one Supabase project for production,
+every preview and local development. A branch or PR preview reads and **writes the same
+rows as the live site**; nothing on the page tells you which URL you are on. Import,
+restore and reset from the production URL only, and export a backup first.
+
+### `DATABASE_URL` on Vercel: both halves are true
+
+- **You do not need to set it.** The connection URI resolves `DATABASE_URL`, then the
+  Supabase↔Vercel integration's `POSTGRES_URL`, first **non-blank** value winning
+  ([`lib/db.ts:41`](lib/db.ts), read at [`lib/db.ts:70`](lib/db.ts)). A fresh deployment
+  connects with nothing set by hand.
+- **You should set it anyway, wherever you can.** `POSTGRES_URL` is a *generic* name, not a
+  Supabase-specific one. Any unrelated Postgres integration, docker-compose file or shell
+  profile that exports it silently becomes this app's database — and if that database
+  happens to be migrated, writes land there with no error and nothing in the UI to say so.
+  `DATABASE_URL` wins the chain and is unambiguous. Treat an unexplained `POSTGRES_URL` in
+  any environment as a question, not as furniture.
+
+Both halves hold at once: the fallback is what makes deployment painless, *and* it is the
+hazard. The app reads **exactly four** variables — the connection URI, `SUPABASE_URL`,
+`SUPABASE_PUBLISHABLE_KEY`, `ADMIN_EMAIL` — and all four **fail closed**: a
+misconfiguration locks writing, it never opens it. `POSTGRES_URL_NON_POOLING` and
+`POSTGRES_PRISMA_URL` are never read. A fifth name, `SUPABASE_SECRET_KEY`, exists in the
+Vercel environment, **must never be read from application code** and must never be given a
+`NEXT_PUBLIC_` prefix — it bypasses RLS and every grant the lockdown migration revoked.
+That standing risk is written up in
+[`docs/reference/deployment.md`](docs/reference/deployment.md#supabase_secret_key-is-in-the-environment-standing-risk);
+it is not repeated here.
+
+Nothing secret is ever committed. `.env.local` is gitignored and holds the database
+password; [`.env.example`](.env.example) is the annotated template.
+
+## How data gets in
+
+Every write funnels through one pipeline. Nothing else writes clash data — no SQL from a
+route or a component.
+
+```mermaid
+flowchart TD
+  UI["Settings → Import data<br/>flat JSON — REPLACE"] --> API
+  EDIT["Member page → edit a week<br/>UPSERT of that member's 2 rows"] --> API
+  API["app/api/* route handler"] --> GUARD
+  GUARD{"requireAdmin()<br/>first statement of every handler"}
+  GUARD -->|"not the admin"| DENY["401, no query issued"]
+  GUARD -->|"admin"| PARSE
+  CSV["npm run import — CSV file<br/>UPSERT"] --> CLI
+  JSONCLI["npm run import:json<br/>flat array = REPLACE<br/>nested week+clashes = UPSERT"] --> CLI
+  CLI["CLI: holds the connection string,<br/>so it bypasses the HTTP guard entirely"] --> PARSE
+  PARSE["lib/parse.ts<br/>tolerant parsing"] --> NORM["normalize / build the payload<br/>lib/import.ts #40;import paths#41;<br/>lib/results.ts #40;member edit#41;"]
+  NORM --> PERSIST["lib/persist.ts<br/>persist#40;payload, upsert or replace#41;"]
+  PERSIST --> PG[("Supabase Postgres<br/>one transaction")]
 ```
 
-> The older nested `{ week, clashes }` JSON is still accepted (upsert) by the same
-> command/endpoint for back-compat.
+Two things the diagram is being precise about:
 
-### CSV file (terminal)
-Run `npm run import -- data/import.csv` (see
-[`data/sample-import.csv`](data/sample-import.csv)). One row per member per clash,
-with a header row using these column names:
+- **`requireAdmin()` is the gate every HTTP arrow crosses**, as the *first statement* of
+  each of the six handlers under `app/api/` — a proxy cannot protect route handlers, so
+  there is no matcher to rely on. The **CLI paths cross no gate**: possessing the
+  connection string *is* the credential there.
+- **The terminal is not uniformly the safe option.** `npm run import` (CSV) upserts, but
+  `npm run import:json` with a **flat array replaces** that `(week, clash)`
+  ([`scripts/import-json.ts:44`](scripts/import-json.ts)); only the older nested
+  `{ week, clashes }` shape upserts ([`scripts/import-json.ts:50`](scripts/import-json.ts)).
 
-`week_number, start_date, end_date, player, clash_type, keys_used, total_damage[, progress]`
+What each path does to your data — and which actions can lose it — is
+[`docs/user-guide.md`](docs/user-guide.md); the exact CLI syntax, read from the parsing
+code, is [`docs/engineer-onboarding.md`](docs/engineer-onboarding.md).
 
-`week_number`, `player`, `clash_type` (`hydra`/`chimera`), `keys_used` and
-`total_damage` are required on every row; `start_date`/`end_date` (`YYYY-MM-DD`) must
-appear at least once per week; `progress` is optional. `total_damage` takes the same
-`16.61B` shorthand as the JSON path. A CSV import **upserts** — it adds and updates
-rows without clearing the rest of the week.
+## Dependencies
 
-### Editing one member's week (in the app)
-On a member's page, the week history table lets you correct a single member's keys and
-damage for a week that already exists — an upsert of just those two clash rows, for
-fixing a typo without re-importing the whole week.
+Versions are the **installed** ones from `package-lock.json` (lockfileVersion 3, 517
+packages), not the declared ranges in `package.json`.
 
-## Backup, restore & reset
+**Runtime (8)**
 
-In **Clan Settings → Overview → Data Management**:
+| Package | Installed | What it does *here* |
+|---|---|---|
+| `next` | 16.2.9 | The whole app: App Router, server components, route handlers, the `proxy.ts` convention ([`app/layout.tsx`](app/layout.tsx)). Turbopack is the default bundler |
+| `react` | 19.2.4 | Component model; hooks in the client leaves ([`components/ClashTable.tsx`](components/ClashTable.tsx)) |
+| `react-dom` | 19.2.4 | **No direct import anywhere** — it is the DOM renderer Next drives React through, and a required peer of `next`. Structurally required, not dead |
+| `postgres` | 3.4.9 | postgres.js — the only database driver, one pooled singleton with `prepare: false` ([`lib/db.ts:1`](lib/db.ts)) |
+| `@supabase/ssr` | 0.12.4 | Cookie-based Supabase auth client. **Sign-in only** — never used to read data ([`lib/supabase/server.ts:1`](lib/supabase/server.ts), [`proxy.ts:1`](proxy.ts)) |
+| `@supabase/supabase-js` | 2.112.3 | **No direct import anywhere** — it is the peer `@supabase/ssr` declares (`^2.111.0`) and builds its client on. Structurally required, not dead |
+| `recharts` | 3.9.0 | The two charts: key-usage donut and weekly bars ([`components/DonutSummary.tsx:3`](components/DonutSummary.tsx), [`components/WeeklyBarChart.tsx:3`](components/WeeklyBarChart.tsx)) |
+| `lucide-react` | 1.21.0 | Every icon in the UI ([`app/error.tsx:19`](app/error.tsx)) |
 
-- **Export backup** downloads all current data as `clash-backup-<date>.json`.
-- **Restore from backup** uploads that file and **replaces** all current data.
-- **Reset database** (danger zone, type `RESET` to confirm) wipes everything to an
-  empty state. The dashboard then renders **genuinely empty** — that's the
-  connected-but-empty state above, not the demo data.
+**Dev (10)**
 
-## It's also online (Vercel)
-
-The dashboard is deployed on Vercel from this repo. **`main` is the production branch and
-every push to it deploys automatically** — there is no separate release step.
-
-**You do not need to set `DATABASE_URL` on Vercel.** The Supabase↔Vercel integration creates
-`POSTGRES_URL`, and the app uses that when no `DATABASE_URL` is set. Only two things are set
-by hand there: `ADMIN_EMAIL`, and `DATABASE_URL` *if* you ever want a deployment pointed at a
-different database. `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` come from the integration
-under exactly the names the app already reads. Nothing is ever committed.
-
-> **Careful: a preview deployment writes your real data.** There is one Supabase project, so
-> a branch/PR preview reads and writes the *same* rows as the live site — importing,
-> restoring or resetting from a preview URL changes the clan's real data, and nothing on the
-> page tells you which URL you're on. Do those on the production URL, and export a backup
-> first.
-
-Two more things worth knowing about the hosting:
-
-- **The free tier takes no backups.** *Clan Settings → Export backup* is your only one.
-- **A Supabase project pauses after about a week of inactivity.** The site then shows the
-  **error page**, not demo data — unpause the project in Supabase and it comes back.
-
-Visitors see every stat and no write controls; you see them once signed in. If the deployed
-site ever shows sample numbers, it isn't reaching the database — check the data source in
-**Clan Settings** rather than trusting that the page loaded.
+| Package | Installed | What it does *here* |
+|---|---|---|
+| `typescript` | 5.9.3 | `strict: true`, `@/*` path alias — and `scripts/` is **excluded** from type-checking ([`tsconfig.json`](tsconfig.json)) |
+| `tailwindcss` | 4.3.1 | CSS-first v4: the theme is an `@theme` block, **there is no `tailwind.config.*`** ([`app/globals.css:3`](app/globals.css)) |
+| `@tailwindcss/postcss` | 4.3.1 | The PostCSS plugin that compiles that stylesheet ([`postcss.config.mjs:3`](postcss.config.mjs)) |
+| `eslint` | 9.39.4 | `npm run lint`, flat config ([`eslint.config.mjs`](eslint.config.mjs)) |
+| `eslint-config-next` | 16.2.9 | Next's `core-web-vitals` + `typescript` rule sets ([`eslint.config.mjs:2-3`](eslint.config.mjs)) |
+| `tsx` | 4.22.4 | Runs the four TypeScript CLI entries directly ([`package.json:10-13`](package.json)) |
+| `dotenv` | 17.4.2 | Loads `.env.local` for those CLI entries only — the app itself never calls it ([`scripts/lib/load-env.ts:4`](scripts/lib/load-env.ts)) |
+| `@types/node` | 20.19.43 | Node types. **One major behind** the 22.x runtime this is developed on |
+| `@types/react` | 19.2.17 | React types |
+| `@types/react-dom` | 19.2.3 | React DOM types |
 
 ## Project layout
 
 ```
-app/            routes (dashboard, hydra, chimera, timeline, members, settings[+import tab], login)
-app/api/        write endpoints (admin-only): import (JSON), backup, restore, reset, member results/avatar
-proxy.ts        keeps a signed-in session fresh; never blocks a request
-components/     UI (Sidebar, ClashCard, PerformanceTable, TimelineStrip, DonutSummary, ...)
-lib/            types, formatting, compute, db client, data loader, parse/import/persist, auth, mock seed
-supabase/       migrations/ — numbered, forward-only SQL applied by npm run db:migrate
-scripts/        db-migrate, seed, import (csv/json)
+app/                  routes: / · /hydra · /chimera · /timeline · /members[/[memberId]]
+                      /settings · /login · /import (redirect)
+app/api/              the six admin-only write/exfil endpoints: import, backup, restore,
+                      reset, members/[memberId]/results, members/[memberId]/avatar
+proxy.ts              Supabase token refresh only; never blocks. NOT middleware.ts —
+                      a middleware.ts is silently ignored in this Next version
+components/           21 UI components; all styling from tokens in app/globals.css
+lib/                  db.ts (pool) · data.ts → compute.ts (read) · parse.ts → import.ts →
+                      persist.ts (write) · auth.ts + supabase/server.ts · backup.ts ·
+                      results.ts · week.ts · constants.ts · format.ts · mock-data.ts
+supabase/migrations/  numbered, forward-only SQL applied by npm run db:migrate
+scripts/              four CLI entries (db-migrate, seed, import-csv, import-json), each
+                      importing scripts/lib/load-env.ts first
+data/                 sample datasets: sample-import.csv, sample-week-flat.json,
+                      sample-week.json. Also holds untracked legacy SQLite files —
+                      no database file is read at runtime
+Database/             real in-game exports, e.g. test-week.json (a flat array; the shape
+                      cited by lib/import.ts:107)
+docs/                 this project's documentation — see the table at the top
+public/ · Assets UI/  static assets · design references
+.claude/rules/        path-scoped engineering rules; read the one matching what you edit
 ```
+
+## Also in this repo, and not about this app
+
+Root [`ONBOARDING.md`](ONBOARDING.md), [`TUTORIAL.md`](TUTORIAL.md) and
+[`SCAFFOLD-MANIFEST.md`](SCAFFOLD-MANIFEST.md) document the **AI agent scaffold this repo is
+developed with** — they contain no clan, clash, import or sign-in material at all. If you
+are looking for Hydra, they are the wrong files; use the table at the top of this page.
