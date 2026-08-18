@@ -267,7 +267,8 @@ is a sandbox. Nothing in the UI distinguishes the two.
 
 ## Rendering: what is static, and why that matters here
 
-Measured with `npm run build` (Next.js 16.2.9, Turbopack; exit 0, unchanged by this order).
+Measured with `npm run build` (Next.js 16.2.9, Turbopack; exit 0). Re-measured 2026-08-18,
+when the bench route took the count to **seventeen**; every marker below is unchanged.
 **The block below is real build output re-flowed into three columns to fit this page** — the
 route names and their `○`/`ƒ` markers are verbatim, the layout is not. Diffing it line-by-line
 against a fresh `npm run build` will show differences that are pure formatting; compare the
@@ -279,7 +280,8 @@ set of routes and their markers instead.
 ├ ƒ /api/backup           ├ ƒ /chimera              ├ ƒ /members
 ├ ƒ /api/import           ├ ƒ /hydra                ├ ƒ /members/[memberId]
 ├ ƒ /api/members/[memberId]/avatar                  ├ ƒ /settings
-├ ƒ /api/members/[memberId]/results                 └ ƒ /timeline
+├ ƒ /api/members/[memberId]/bench                   └ ƒ /timeline
+├ ƒ /api/members/[memberId]/results
 
 ƒ Proxy (Middleware)
 ○ (Static) prerendered as static content · ƒ (Dynamic) server-rendered on demand
@@ -290,11 +292,12 @@ because each one `await`s `searchParams` for its `?week=`.** None of those four 
 `export const dynamic = "force-dynamic"`; **among pages**, only `/settings`, `/login`,
 `/members/[memberId]` and `/members` do. The fifth data page, `/members`, reads no
 `searchParams` at all since 2026-08-13 and is held dynamic by that explicit declaration
-instead (`app/members/page.tsx:15`; the worked example in `.claude/rules/rendering.md` records
+instead (`app/members/page.tsx:17`; the worked example in `.claude/rules/rendering.md` records
 why, and why a vestigial `await` kept "just to stay dynamic" was rejected).
-(Six `app/api/*/route.ts` files declare it too — `backup`, `import`,
-`reset`, `restore`, `members/[memberId]/avatar`, `members/[memberId]/results` — so a
-repo-wide grep returns ten hits, not four. `next.config.ts` is empty, so `cacheComponents`
+(Seven `app/api/*/route.ts` files declare it too — `backup`, `import`,
+`reset`, `restore`, `members/[memberId]/avatar`, `members/[memberId]/bench`,
+`members/[memberId]/results` — so a
+repo-wide grep returns eleven hits, not four. `next.config.ts` is empty, so `cacheComponents`
 is off and nothing else is holding these pages dynamic either.) On a deployment the
 consequence is sharper than locally: a page
 that lost its `searchParams` would become statically prerendered and **bake one build's rows

@@ -53,10 +53,13 @@ Clan Settings names which state you are in; "the page loaded" is not evidence of
 
 | Route | What it is |
 |---|---|
-| `/` | Overview: both clash cards, clan performance table, timeline strip, key-usage donut |
-| `/hydra`, `/chimera` | One clash: card, weekly bar chart, sortable Player Breakdown |
+| `/` | Overview: both clash cards, clan performance table, **Black List**, timeline strip, key-usage donut. Scrolls like an ordinary page |
+| `/hydra`, `/chimera` | One clash: card, weekly bar chart, sortable Player Breakdown. Locked to the viewport at `xl` and up |
 | `/timeline` | Weekly Hydra vs Chimera totals across every tracked week |
 | `/members` | Roster, active first then former, with lifetime totals |
+
+Five tables page at **10 rows** through one shared control — Clan Performance, its Total tab,
+the Black List, the clash Player Breakdown and the `/members` Roster.
 | `/members/[memberId]` | One member: lifetime and per-clash cards, week-by-week history, avatar, per-week edit |
 | `/settings` | Clan Settings: counters, data-source status, admin access, **Import data** tab, Data Management |
 | `/import` | A **307 redirect to `/settings`** ([`app/import/page.tsx:5`](app/import/page.tsx)) — the import UI moved into the Settings tab |
@@ -140,7 +143,7 @@ flowchart TD
 Two things the diagram is being precise about:
 
 - **`requireAdmin()` is the gate every HTTP arrow crosses**, as the *first statement* of
-  each of the six handlers under `app/api/` — a proxy cannot protect route handlers, so
+  each of the seven handlers under `app/api/` — a proxy cannot protect route handlers, so
   there is no matcher to rely on. The **CLI paths cross no gate**: possessing the
   connection string *is* the credential there.
 - **The terminal is not uniformly the safe option.** `npm run import` (CSV) upserts, but
@@ -190,11 +193,13 @@ packages), not the declared ranges in `package.json`.
 ```
 app/                  routes: / · /hydra · /chimera · /timeline · /members[/[memberId]]
                       /settings · /login · /import (redirect)
-app/api/              the six admin-only write/exfil endpoints: import, backup, restore,
-                      reset, members/[memberId]/results, members/[memberId]/avatar
+app/api/              the seven admin-only write/exfil endpoints: import, backup, restore,
+                      reset, members/[memberId]/results, members/[memberId]/avatar,
+                      members/[memberId]/bench
 proxy.ts              Supabase token refresh only; never blocks. NOT middleware.ts —
                       a middleware.ts is silently ignored in this Next version
-components/           21 UI components; all styling from tokens in app/globals.css
+components/           27 UI components; all styling from tokens in app/globals.css
+                      (measured 2026-08-18; re-measure with ls components/*.tsx | wc -l)
 lib/                  db.ts (pool) · data.ts → compute.ts (read) · parse.ts → import.ts →
                       persist.ts (write) · auth.ts + supabase/server.ts · backup.ts ·
                       results.ts · week.ts · constants.ts · format.ts · mock-data.ts

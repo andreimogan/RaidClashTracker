@@ -74,6 +74,18 @@ function databaseError(err: unknown): string {
   if (code === "42P01") {
     return "The clan tables don't exist yet. Run `npm run db:migrate` first.";
   }
+  // Second mapped code, same failure mode the bench route already maps: the
+  // tables exist but a migration has not been applied, so the restore's insert
+  // names a column this database does not have (`42703 undefined_column`).
+  // Restore is the worst place to meet it — restoreBackup() clears all four
+  // tables and re-inserts inside ONE transaction, so the rollback leaves the
+  // data intact but the admin has just watched a disaster-recovery attempt fail,
+  // and this is a path they can reach before ever thinking about migrations.
+  // The generic branch below would print a bare code number where the fix is the
+  // same instruction `42P01` already gives.
+  if (code === "42703") {
+    return "This database is missing a column the backup needs. Run `npm run db:migrate` first.";
+  }
   if (typeof code === "string") {
     return `Restore failed — the database rejected it (code ${code}).`;
   }

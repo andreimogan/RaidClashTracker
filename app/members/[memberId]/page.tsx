@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Flame, Cat } from "lucide-react";
+import { ArrowLeft, Flame, Cat, ShieldCheck } from "lucide-react";
 import { loadDataset, getDataSource } from "@/lib/data";
 import { isAdmin } from "@/lib/auth";
 import { getMemberProfile } from "@/lib/compute";
 import type { MemberClashStat } from "@/lib/types";
 import { AvatarEditor } from "@/components/AvatarEditor";
+import { BenchToggle } from "@/components/BenchToggle";
 import { TrendBadge } from "@/components/TrendBadge";
 import { ExportButton, type ExportData } from "@/components/ExportButton";
 import { SectionTitle } from "@/components/SectionTitle";
@@ -215,6 +216,26 @@ export default async function MemberDetailPage({
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight">{member.inGameName}</h1>
+            {/* The one name surface outside MemberCell, so it carries its own
+                copy of the shield — same markup, sized for this row.
+
+                `role="img"` is load-bearing, not decoration: lucide-react stamps
+                `aria-hidden="true"` on the svg unless an a11y prop is passed, and
+                an `aria-label` on a bare <span> (role `generic`) is prohibited by
+                ARIA in HTML and dropped, so without the role this marker does not
+                exist for a screen reader at all. The native `title` is a settled
+                owner choice and is hover-only; the role is what makes the second
+                carrier work.
+
+                `text-gold`, not the good-number token: this marker sits in rows
+                where that token means a high participation or a positive trend,
+                so green read as "good player" instead of "excused". Gold is not a
+                performance tier and cannot be misread as one. */}
+            {member.isBenched && (
+              <span className="inline-flex shrink-0" role="img" title="This player is safe from the blacklist" aria-label="This player is safe from the blacklist">
+                <ShieldCheck size={18} className="text-gold" />
+              </span>
+            )}
             {isActive ? (
               <span className="rounded-full border border-hydra/30 bg-hydra/10 px-2 py-0.5 text-xs font-medium text-hydra">
                 Active
@@ -229,7 +250,14 @@ export default async function MemberDetailPage({
             Tracked {tracked} · {weeksPresent} weeks ({weeksActive} active)
           </div>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex flex-wrap items-start gap-2">
+          {/* Gated on the same `readOnly` the avatar and the history table use,
+              and ABSENT rather than disabled in all three read-only cells of the
+              2×2 grid (live+anonymous, demo+anonymous, demo+admin): a visitor
+              who could never save never receives the POST helper. The reason
+              copy already sits next to the avatar in this same header, so
+              repeating it here would say the same sentence twice. */}
+          {!readOnly && <BenchToggle memberId={member.id} isBenched={member.isBenched} />}
           <ExportButton data={exportData} />
         </div>
       </section>

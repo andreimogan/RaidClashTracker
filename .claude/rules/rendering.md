@@ -12,12 +12,12 @@ paths:
 
 Rendering rules for `app/**` — what makes a route dynamic, and what breaks if it stops being.
 
-- **The four `searchParams` data pages are dynamic *only* because each one `await`s `searchParams`.** `/`, `/hydra`, `/chimera` and `/timeline` each destructure `?week=` out of `searchParams: Promise<{ week?: string }>`, and that `await` is the entire reason a request-time database read happens on them. The fifth data page, `/members`, no longer reads `searchParams` at all and is held dynamic by an explicit `force-dynamic` instead (see the worked example below). Measured in the build output (Next.js 16.2.9, Turbopack): **`ƒ` on `/`, `/hydra`, `/chimera`, `/timeline`, `/members`; `○` on `/import` and `/_not-found`.** **None of those four declares `export const dynamic = "force-dynamic"`** — **among pages** only `/settings`, `/login`, `/members/[memberId]` and `/members` do (six `app/api/*/route.ts` files declare it as well, so a repo-wide grep for `force-dynamic` returns ten hits, not four; don't read that count as pages). `next.config.ts` is empty, so `cacheComponents` is **off** and there is no other mechanism holding these pages dynamic.
+- **The four `searchParams` data pages are dynamic *only* because each one `await`s `searchParams`.** `/`, `/hydra`, `/chimera` and `/timeline` each destructure `?week=` out of `searchParams: Promise<{ week?: string }>`, and that `await` is the entire reason a request-time database read happens on them. The fifth data page, `/members`, no longer reads `searchParams` at all and is held dynamic by an explicit `force-dynamic` instead (see the worked example below). Measured in the build output (Next.js 16.2.9, Turbopack): **`ƒ` on `/`, `/hydra`, `/chimera`, `/timeline`, `/members`; `○` on `/import` and `/_not-found`.** **None of those four declares `export const dynamic = "force-dynamic"`** — **among pages** only `/settings`, `/login`, `/members/[memberId]` and `/members` do (seven `app/api/*/route.ts` files declare it as well, so a repo-wide grep for `force-dynamic` returns eleven hits, not four; don't read that count as pages). `next.config.ts` is empty, so `cacheComponents` is **off** and there is no other mechanism holding these pages dynamic.
 - **A page that stopped awaiting `searchParams` would silently become statically prerendered**, baking one build's rows into HTML served to every visitor — or baking the **demo dataset**, if the build environment had no connection string, which is the deployed-and-lying state this project has already hit once (`docs/reference/deployment.md`). There is no error and no warning: the only symptom is numbers that never change. Same class of accident Phase 3b caught on `app/members/[memberId]/page.tsx`.
 - **If a data page must stop reading `searchParams`, it declares `force-dynamic` in the same change**, and the build's route table is re-checked (`ƒ`, not `○`) as the proof. "It looked fine in dev" is not evidence — `next dev` renders everything per request.
-- **Worked example — `/members`, 2026-08-13.** The page rendered a week selector that changed nothing (the roster aggregates every week by design), so the control was removed; that left `await searchParams` with no consumer, which is exactly the state this rule warns about. The removal and `export const dynamic = "force-dynamic"` (`app/members/page.tsx:15`) landed in the **same** edit, and the route table verified it:
+- **Worked example — `/members`, 2026-08-13.** The page rendered a week selector that changed nothing (the roster aggregates every week by design), so the control was removed; that left `await searchParams` with no consumer, which is exactly the state this rule warns about. The removal and `export const dynamic = "force-dynamic"` (`app/members/page.tsx:17`) landed in the **same** edit, and the route table verified it:
 
-  The table below is the **complete** route section, verbatim — all sixteen routes plus the proxy
+  The table below is the **complete** route section, verbatim — all seventeen routes plus the proxy
   and the legend — so re-running `npm run build` to check this rule produces matching output rather
   than a subset that reads as a discrepancy. Only the `←` note is added:
 
@@ -28,6 +28,7 @@ Rendering rules for `app/**` — what makes a route dynamic, and what breaks if 
   ├ ƒ /api/backup
   ├ ƒ /api/import
   ├ ƒ /api/members/[memberId]/avatar
+  ├ ƒ /api/members/[memberId]/bench
   ├ ƒ /api/members/[memberId]/results
   ├ ƒ /api/reset
   ├ ƒ /api/restore

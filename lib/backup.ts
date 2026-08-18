@@ -103,6 +103,9 @@ export async function restoreBackup(data: unknown): Promise<{ members: number; w
     hero_level: num(m.hero_level),
     avatar_url: str(m.avatar_url),
     is_active: bool(m.is_active),
+    // Default false, unlike is_active's true: a backup taken before the flag
+    // existed carries no such key, and "nobody excused" is that file's truth.
+    is_benched: bool(m.is_benched, false),
     created_at: ts(m.created_at),
   }));
 
@@ -136,9 +139,9 @@ export async function restoreBackup(data: unknown): Promise<{ members: number; w
     // "YYYY-MM-DD HH:MM:SS" text and the new ISO-8601 form cast cleanly.
     for (const m of members) {
       await sql`
-        insert into members (id, in_game_name, level, hero_level, avatar_url, is_active, created_at)
+        insert into members (id, in_game_name, level, hero_level, avatar_url, is_active, is_benched, created_at)
         values (${m.id}, ${m.in_game_name}, ${m.level}, ${m.hero_level}, ${m.avatar_url},
-                ${m.is_active}, coalesce(${m.created_at}::timestamptz, now()))
+                ${m.is_active}, ${m.is_benched}, coalesce(${m.created_at}::timestamptz, now()))
       `;
     }
 

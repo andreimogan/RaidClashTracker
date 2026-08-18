@@ -19,6 +19,16 @@
 # permanent, and it is what makes deleting a ledger safe. Deleted ledgers also stay
 # in git history: `git show <commit>:docs/tasks/<file>` recovers any of them.
 #
+# Removed 2026-08-18 (321 lines): members-week-selector-removal. The order that
+# followed it rewrote app/members/page.tsx (100+ lines -> 73, roster extracted to
+# components/RosterTable.tsx), so the pack's load-bearing facts inverted: it says
+# the file has NO force-dynamic and DOES await searchParams; both are now false.
+# Two of its citations were out of range on measurement. Its one durable lesson
+# lives in the load-bearing comment at app/members/page.tsx:7-14 and in the worked
+# example in .claude/rules/rendering.md. Six ledgers remain, all with packs that
+# still describe current code: the three phase3a/3b/4 packs cover auth, RLS and
+# the connection resolver, none of which has changed a byte since 2026-08-13.
+#
 # Removed 2026-08-13 (all `status: done`, ~1,290 lines): phase1-retire-sheet-sync-
 # and-db-switcher, phase2-port-data-layer-to-supabase-postgres (both packs describe
 # the libSQL era and a `lib/db.ts` since rewritten twice — phase2's frozen seam even

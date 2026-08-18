@@ -1,0 +1,59 @@
+-- Raid Clash Tracker — Supabase Postgres. Migration 0003: per-member bench flag.
+--
+-- Forward-only, applied in filename order by `npm run db:migrate`, which keeps NO
+-- applied-migrations table and re-applies every file on every run. Re-run safety
+-- here rests on two clauses, both deliberate:
+--
+--   * `add column if not exists` — the second and every later pass is a no-op
+--     instead of `42701 column "is_benched" of relation "members" already exists`.
+--     That error would not just fail this statement: db-migrate sends each file as
+--     one simple (multi-statement) query, which Postgres wraps in an implicit
+--     transaction, so the file is all-or-nothing and a duplicate-column error
+--     would abort it — and, being the last file, would fail the whole run.
+--
+--   * a CONSTANT default (`false`), not an expression — so the backfill Postgres
+--     performs when the column first appears is deterministic and identical on
+--     every database, and there is no per-row evaluation a later pass could redo
+--     over rows an admin has since benched. A constant default also lets Postgres
+--     record it as catalog metadata rather than rewriting the table, so the add is
+--     metadata-only: no rewrite, no long lock, regardless of row count.
+--
+-- `alter table members` is intentionally NOT `alter table if exists members`:
+-- 0001_init.sql creates the table and sorts first, so on any database this runner
+-- touches the table exists. If it somehow does not, failing loudly with `42P01` is
+-- the correct outcome — silently skipping would leave the column missing while the
+-- run reported success. Never edit this file once applied — add 0004_*.sql instead.
+--
+-- NO `enable row level security` LINE HERE, ON PURPOSE — stated rather than merely
+-- omitted, because a reviewer will look for it. The "every new table in public
+-- needs its own RLS line" invariant in .claude/rules/supabase-schema.md is scoped
+-- to new TABLES: 0002's lever 4 stops a future table inheriting anon grants but
+-- does not enable RLS on it, so a table born after 0002 must say so itself.
+-- `members` is not a new table — 0002's lever 1 already ran `enable row level
+-- security` on public.members, and RLS is a TABLE-level property, so a new column
+-- is covered by inheritance the moment it exists. Repeating the statement would be
+-- a harmless no-op, but writing it here would imply a column can carry its own RLS
+-- state, which it cannot. The same holds for lever 2: `revoke all … from anon,
+-- authenticated` is relation-wide (relacl), not per column, so the new column is
+-- unreachable to those roles without any action here. And nothing in this file
+-- recreates a view, so 0001's `create or replace view` trap — which resets
+-- reloptions and wipes `security_invoker` (lever 3) — is not in play.
+--
+-- Type intent, in the shape 0001 records it (0001_init.sql:13-24):
+--
+--   is_benched  boolean not null default false
+--
+-- mirroring `is_active boolean not null default true` at 0001_init.sql:32, whose
+-- header comment at :17 records the port intent for that column. Read-back type
+-- measured for this project: Postgres `boolean` -> JS `boolean`, so lib/data.ts's
+-- row mappers need no coercion for it, unlike bigint/numeric (which return
+-- strings). No `numeric` is introduced here.
+--
+-- Semantics: true = an admin has benched this member, which excludes them from the
+-- Black List entirely (out of the listed rows AND out of the judged denominator).
+-- Existing rows backfill to false, i.e. exactly the pre-feature behaviour — nobody
+-- is benched until an admin says so. Bench state is member METADATA, not ingest
+-- data: lib/persist.ts's `on conflict do update set` touches only in_game_name, so
+-- a re-import cannot clear it, the same way avatar_url and is_active survive today.
+
+alter table members add column if not exists is_benched boolean not null default false;

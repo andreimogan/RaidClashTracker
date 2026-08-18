@@ -160,10 +160,10 @@ refactor that moves a Server Function to a different route can silently remove P
 coverage. Always verify authentication and authorization inside each Server Function rather
 than relying on Proxy alone."*
 
-## The guarded surface: six routes
+## The guarded surface: seven routes
 
-All six carry the guard as the first statement, and all six were measured refusing an
-anonymous caller over HTTP (t2), byte-identical bodies:
+All seven carry the guard as the first statement. **Six of them were measured** refusing an
+anonymous caller over HTTP at Phase 3b (t2), byte-identical bodies:
 
 ```
 GET  /api/backup                    401   (JSON, and no Content-Disposition — not an attachment)
@@ -177,6 +177,18 @@ POST /api/members/<id>/results      401
 **No database query is issued on the 401 path** — proved with a TCP witness on the
 loopback the overridden `DATABASE_URL` pointed at: silent through all six requests, while a
 public read (`GET /hydra`) immediately logged a connection attempt as the positive control.
+
+**The seventh, `POST /api/members/<id>/bench` (2026-08-18), is guarded by construction, not
+by that sweep** — it was written from the `avatar` template, and the guard sits at
+`app/api/members/[memberId]/bench/route.ts:16-17`, the first statement of a handler body
+that opens at `:15`, ahead of `await params` (`:19`), the body read (`:36`) and the `try`
+(`:35`). Verified by reading the guard and by `npm run build`; separately, its own task
+**did measure this route returning `401` to an anonymous caller** with a valid body, an
+absent body and a malformed (`"yes"`) body — identical each time, so the 400 branch is
+provably never reached before the guard. That is a narrower claim than the Phase 3b sweep:
+there was no TCP witness on it, and the **signed-in admin path remains unexercised** along
+with everyone else's (see "What ships unexercised"). Do not restate this as "seven routes
+were measured" — six were, in one sweep, and the seventh has its own smaller evidence.
 
 `/api/backup` matters as much as the writes: it exports the entire dataset, so it is an
 exfil route, not a read.
@@ -241,6 +253,20 @@ affordance-bearing components: `DataManagement`, `ImportPanel` (from `/settings`
 `AvatarEditor`, `MemberHistoryTable` (from `/members/[memberId]`).
 `components/ExportButton.tsx` needs no gate — it builds its CSV in the browser from props
 already rendered on the page.
+
+**There is a fifth affordance, and it takes neither prop — that is the second shape of the
+same rule.** `components/BenchToggle.tsx` (2026-08-18) is a client leaf that carries no
+read-only branch at all; the *page* decides, with `{!readOnly && <BenchToggle … />}` at
+`app/members/[memberId]/page.tsx:260`. Gating at the call site rather than inside the
+component is the stronger form of hide-don't-disable: a reader who may not write never
+receives the POST helper in their tree, so there is nothing to re-enable in a devtools
+panel. It rides the same single `readOnly` boolean (`:111`) that covers three of the four
+permission cells, so **demo + admin** — the cell that gets forgotten — is hidden by the very
+same expression as the other two, with no second condition that could miss it. It adds no
+read-only copy of its own on purpose: the avatar in the same header already prints the
+reason, and a second copy would say it twice. Copy this shape for a new leaf-level write
+control; use the `readOnly`/`readOnlyReason` props when the component must *explain* the
+lock in place.
 
 **The permission surface is a 2×2, and the fourth cell is the one that gets forgotten.**
 `source` (live | demo) × `signedIn` (yes | no). `readOnlyReason` deliberately collapses two
@@ -341,7 +367,7 @@ never run.** Unexercised with it:
 - the Admin Access card's signed-in branch and the Sign out form,
 - every admin-visible affordance in its *rendered* state (pencils, avatar controls, import
   form, backup link),
-- the signed-in branch of all six route handlers,
+- the signed-in branch of all seven route handlers,
 - **signed-in-non-admin → 401**, which is reasoned from code (a trimmed, case-insensitive
   compare returning the identical 401 body), not measured, by owner choice.
 

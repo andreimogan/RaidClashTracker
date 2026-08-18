@@ -224,7 +224,7 @@ Where things live:
 | Path | What |
 |---|---|
 | [`app/`](../app) | routes: `/`, `/hydra`, `/chimera`, `/timeline`, `/members`, `/members/[memberId]`, `/settings`, `/login`, and `/import` — which is a two-line redirect to `/settings` (`app/import/page.tsx:5`), because the import UI moved into a Settings tab |
-| [`app/api/`](../app/api) | the six write/exfil endpoints: `/api/import`, `/api/restore`, `/api/reset`, `/api/backup`, `/api/members/[memberId]/results`, `/api/members/[memberId]/avatar` |
+| [`app/api/`](../app/api) | the seven write/exfil endpoints: `/api/import`, `/api/restore`, `/api/reset`, `/api/backup`, `/api/members/[memberId]/results`, `/api/members/[memberId]/avatar`, `/api/members/[memberId]/bench` |
 | [`proxy.ts`](../proxy.ts) | Supabase token refresh only. Never blocks. **Not** `middleware.ts` — see the hazards |
 | [`lib/`](../lib) | `lib/db.ts` (pool) · `lib/data.ts` → `lib/compute.ts` (read) · `lib/parse.ts` → `lib/import.ts` → `lib/persist.ts` (write) · `lib/auth.ts` + `lib/supabase/server.ts` · `lib/backup.ts` · `lib/results.ts` · `lib/week.ts` · `lib/constants.ts` · `lib/format.ts` · `lib/mock-data.ts` |
 | [`components/`](../components) | UI; gestal.gg aesthetic, tokens in `app/globals.css` |
@@ -335,6 +335,10 @@ Neither `POSTGRES_URL_NON_POOLING` (the direct `5432` endpoint) nor `POSTGRES_PR
 
 Covered in [The verify loop](#the-verify-loop). Repeated here because every newcomer's first instinct is to fix it: 9 errors + 1 warning is the approved baseline. Compare counts; do not chase zero.
 
+**The corollary matters more, and it bit this project once already: a lint run that stays at baseline is not evidence that what you wrote is correct.** `react-hooks/set-state-in-effect` — the rule that would catch "sync this state down in a `useEffect`" — **cannot follow a setter that arrives through a custom hook's return value.** So `usePagination`'s `setPage` (`components/Pagination.tsx:160`) is invisible to it, and all five paginated tables could write the buggy effect form with a clean lint run. Measured on 2026-08-17, both ways: through `view.setPage` the effect produced only an `exhaustive-deps` warning; with the setter destructured first it produced nothing new at all. Two docs and a task ledger were, at that point, citing the rule as the *reason* the render-phase form was used.
+
+**Its sibling is blind in the same spot, which is how you can prove the gap without writing any bad code.** `react-hooks/set-state-in-render` is also error-level here — check it yourself with `npx eslint --print-config components/TotalPerformanceTable.tsx`, which reports both rules at severity `2`. Now look at `components/TotalPerformanceTable.tsx:113-117`: it calls `view.setPage(1)` **during render**, which is exactly what that rule exists to flag, and lint is at baseline with zero hits in the file. The code is *correct* — it is React's documented "adjusting state when a prop changes", and the setter is idempotent so it terminates in two passes — but the linter is not what tells you so. **Neither rule can see through the custom hook, so neither a green run on the effect version nor a green run on the render version carries any information about this seam.** **When you justify a pattern, justify it by what the user sees** — here, that an effect commits and paints one wrong frame before correcting itself — **and treat lint as a floor, never as a proof.** The measurement is preserved in code at `components/TotalPerformanceTable.tsx:88-104`.
+
 ### 10. `npm run seed` occupies Weeks 20–24 — which is also the diagnostic for a broken deployment
 
 The sample dataset is Weeks 20–24 (`lib/mock-data.ts:18-24`), and `npm run seed` pushes **those same rows** into the real database (`scripts/seed.ts:1-5`).
@@ -357,6 +361,8 @@ Consequences, all mandatory:
 - **Every new table in `public` needs its own `enable row level security`.** The default-privileges lever in `0002` revokes *grants* on future tables; it does not enable RLS on them.
 - **Create tables through migrations, never the dashboard's Table Editor.** A second default-ACL entry owned by `supabase_admin` still grants `anon`/`authenticated` on future tables, and it cannot be altered without superuser — so a table created through the UI can be born with the door open.
 
+**There is one migration pending right now:** `0003_add_members_is_benched.sql` (one `alter table members add column if not exists is_benched boolean not null default false;`). It was **measured unapplied on the clan database on 2026-08-18** — a read-only `information_schema.columns` query returned `id, in_game_name, level, hero_level, avatar_url, is_active, created_at`, with no `is_benched`. Nothing about page rendering depends on it (`select *` simply omits the key and `toMember()`'s `=== true` at `lib/data.ts:111` yields `false`), but **both `POST /api/members/[memberId]/bench` and `POST /api/restore` fail with `42703` until it is applied** — restore because backups now name the column in the insert. Both routes map that code to a sentence naming `npm run db:migrate` rather than printing a bare code. Note `.claude/rules/supabase-schema.md` still lists only 0001 and 0002 as applied; that line is correct about what has *run* and silent about what is waiting.
+
 Full measured detail, including the four lockdown levers and how each fails: `.claude/rules/supabase-schema.md`.
 
 ### 12. "RLS enabled, no policies" is the intended end state — do not resolve the advisory
@@ -371,7 +377,9 @@ Real values reach ~5.8e10, about 27× the `int4` ceiling, so the column is `bigi
 
 `/`, `/hydra`, `/chimera` and `/timeline` each destructure `?week=` out of `searchParams: Promise<{ week?: string }>`, and **that `await` is the entire reason a request-time database read happens.** None of those four declares `export const dynamic = "force-dynamic"`, and `next.config.ts` is empty, so nothing else is holding them dynamic.
 
-**`/members` is the explicit-declaration case, and it is the one that looks deletable.** Its week selector changed nothing (the roster aggregates every week by design) and was removed on 2026-08-13, so the page reads no `searchParams` at all. It stays dynamic solely because of `export const dynamic = "force-dynamic"` at `app/members/page.tsx:15`, which carries a comment saying it is load-bearing. **Do not tidy it away** as cargo cult on a page that awaits nothing — deleting it flips `/members` from `ƒ` to `○` with no error and no warning. The worked example is in `.claude/rules/rendering.md`.
+**`/members` is the explicit-declaration case, and it is the one that looks deletable.** Its week selector changed nothing (the roster aggregates every week by design) and was removed on 2026-08-13, so the page reads no `searchParams` at all. It stays dynamic solely because of `export const dynamic = "force-dynamic"` at `app/members/page.tsx:17`, which carries a comment saying it is load-bearing. **Do not tidy it away** as cargo cult on a page that awaits nothing — deleting it flips `/members` from `ƒ` to `○` with no error and no warning. The worked example is in `.claude/rules/rendering.md`.
+
+Re-verified 2026-08-17, after the roster table moved out of the page into a client leaf (`components/RosterTable.tsx`) so it could hold a page index in `useState` — and re-verified again after that day's fix round, which touched `RosterTable` (it gained a `colSpan={8}` connected-but-empty row, `:118`) but did **not** touch `app/members/page.tsx` at all. **That changes none of the above.** The page is still a server component, still reads no `searchParams`, and the declaration is still line 15 — kept there deliberately, because `.claude/rules/rendering.md` and `docs/reference/deployment.md:293` both cite that exact line. Note the shape of the fix, because it is the reusable one: **client state on a data page goes in a leaf component, never in a `?page=` query parameter** — a query parameter would mean reading `searchParams` again and would make the URL, not the reader, own the position.
 
 A page that stopped reading `searchParams` would **silently become statically prerendered** and bake one build's rows into HTML served to every visitor — or bake the **demo dataset**, if the build environment had no connection string. No error, no warning; the only symptom is numbers that never change. The fallback would not have widened, it would have been *published*.
 
@@ -384,7 +392,7 @@ const denied = await requireAdmin();
 if (denied) return denied;
 ```
 
-Before `await params`, before `request.json()`, before any `try`. All six carry it: `app/api/backup/route.ts:14`, `app/api/import/route.ts:19`, `app/api/reset/route.ts:15`, `app/api/restore/route.ts:11`, `app/api/members/[memberId]/results/route.ts:16`, `app/api/members/[memberId]/avatar/route.ts:18`.
+Before `await params`, before `request.json()`, before any `try`. All seven carry it: `app/api/backup/route.ts:14`, `app/api/import/route.ts:19`, `app/api/reset/route.ts:15`, `app/api/restore/route.ts:11`, `app/api/members/[memberId]/results/route.ts:16`, `app/api/members/[memberId]/avatar/route.ts:18`, `app/api/members/[memberId]/bench/route.ts:16`.
 
 **There is no matcher protecting these** — the proxy's matcher explicitly excludes every `/api` path, because a proxy cannot protect route handlers. `requireAdmin()` is the single choke point, which also means **no data mutation may move to a Server Action**: Server Functions are reachable by direct POST, so a second write surface would be a second thing to guard. The only `"use server"` file in the repo is `app/login/actions.ts` (sign-in/sign-out cookies, no application data).
 

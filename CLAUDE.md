@@ -13,7 +13,7 @@ Next.js dashboard tracking a RAID: Shadow Legends clan's **Hydra Clash** and **C
 - data in: `npm run import -- <csv>` · `npm run import:json -- <file> --clash hydra|chimera [--week N]`
 
 ## Layout
-- `app/` — routes: `/` overview, `/hydra`, `/chimera`, `/timeline`, `/members[/[memberId]]`, `/settings`, `/import`, `/login`; `app/api/` — write endpoints (import, backup, restore, reset, member results, member avatar), **all six admin-only**
+- `app/` — routes: `/` overview, `/hydra`, `/chimera`, `/timeline`, `/members[/[memberId]]`, `/settings`, `/import`, `/login`; `app/api/` — write endpoints (import, backup, restore, reset, member results, member avatar, member bench), **all seven admin-only**
 - `proxy.ts` (repo root) — Supabase token refresh only, never blocks. **The file convention here is `proxy`, not `middleware`** — a `middleware.ts` is silently ignored in this Next version
 - `components/` — UI (gestal.gg aesthetic; tokens/primitives live in `app/globals.css`)
 - `lib/` — types · db client (`db.ts`) · read path (`data.ts` → `compute.ts`) · write path (`parse.ts` → `import.ts` *or* `results.ts` → `persist.ts`) · auth (`supabase/server.ts` → `auth.ts`) · formatting · `mock-data.ts` demo fallback
