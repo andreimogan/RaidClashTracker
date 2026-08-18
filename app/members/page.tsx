@@ -1,8 +1,8 @@
 import { loadDataset } from "@/lib/data";
 import { activeMemberIds } from "@/lib/compute";
 import { TopBar, type ExportData } from "@/components/TopBar";
-import { MemberCell } from "@/components/MemberCell";
-import { SectionTitle } from "@/components/SectionTitle";
+import { RosterTable, type RosterRow } from "@/components/RosterTable";
+import { BenchedRosterTable } from "@/components/BenchedRosterTable";
 import { formatDamage, formatKeys } from "@/lib/format";
 
 // REQUIRED, not incidental. This roster aggregates every week, so the page reads
@@ -11,14 +11,18 @@ import { formatDamage, formatKeys } from "@/lib/format";
 // Without this line the page silently prerenders to static HTML: one build's
 // roster served to every visitor, or the demo dataset if the build environment
 // had no connection string. No error, no warning — the build's route table (`ƒ`,
-// not `○`) is the only proof. Do not remove it as dead code.
+// not `○`) is the only proof. Do not remove it as dead code. The two client
+// roster tables change none of this — they page over rows this server component
+// read.
 export const dynamic = "force-dynamic";
 
 export default async function MembersPage() {
   const ds = await loadDataset();
   const activeIds = activeMemberIds(ds);
 
-  const summaries = ds.members
+  // Computed here, on the server, and handed to the client leaf as finished
+  // rows — `RosterTable` adds paging position and nothing else.
+  const summaries: RosterRow[] = ds.members
     .map((member) => {
       const rows = ds.results.filter((r) => r.memberId === member.id);
       const hydra = rows.filter((r) => r.clashType === "hydra");
@@ -42,8 +46,12 @@ export default async function MembersPage() {
       return b.hydraTotal + b.chimeraTotal - (a.hydraTotal + a.chimeraTotal);
     });
 
-  const activeCount = summaries.filter((s) => s.isActive).length;
-  const formerCount = summaries.length - activeCount;
+  // A SUBSET VIEW, NOT A PARTITION. `summaries` goes to the Roster below
+  // unfiltered, so every player in here is on both cards — the owner's pinned
+  // decision: benching does not remove anybody from the clan, it records that
+  // they will not take part in events. Derived on the server like every other
+  // row on this page; the client leaf adds paging position and nothing else.
+  const benched: RosterRow[] = summaries.filter((s) => s.member.isBenched);
 
   const exportData: ExportData = {
     filename: "members.csv",
@@ -64,59 +72,25 @@ export default async function MembersPage() {
       {/* No week props: the roster is all-weeks by design (docs/user-guide.md),
           so TopBar renders the title and the CSV export only. */}
       <TopBar title="Members" exportData={exportData} />
-      <section className="card-flush">
-        <div className="flex items-center justify-between p-5 pb-3">
-          <SectionTitle>Roster</SectionTitle>
-          <span className="text-sm text-muted">
-            <span className="text-hydra">{activeCount} active</span> · {formerCount} former ·{" "}
-            {summaries.length} tracked
-          </span>
+      {/* Roster + Benched Roster, 2 + 1, split at `2xl` (1536px) and stacked
+          below it — the same grid as the overview's Clan Performance + Black
+          List row (app/page.tsx:136), and held back to `2xl` for the same
+          measured reason: two of three columns at `xl` would leave the Roster's
+          min-w-[820px] grid under a permanent horizontal scrollbar on every
+          1280–1500px laptop. At 1536px it gets ~944px and the narrow column
+          ~465px, which is ample for a two-column table.
+
+          Both tables are client leaves ONLY because the page index is client
+          state — see the header comment in components/RosterTable.tsx. This page
+          stays a server component and keeps every derivation above. */}
+      <div className="grid grid-cols-1 gap-5 2xl:grid-cols-3">
+        <div className="xl:h-full 2xl:col-span-2">
+          <RosterTable rows={summaries} />
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-sm">
-            <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
-              <tr className="border-b border-border">
-                <th className="px-3 py-2 pl-5 font-medium">#</th>
-                <th className="px-3 py-2 font-medium">Player</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Weeks</th>
-                <th className="px-3 py-2 font-medium text-hydra">Hydra Total</th>
-                <th className="px-3 py-2 font-medium text-chimera">Chimera Total</th>
-                <th className="px-3 py-2 font-medium">Avg Keys / Week</th>
-                <th className="px-3 py-2 pr-5 font-medium">Participation</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summaries.map((s, i) => (
-                <tr key={s.member.id} className="border-b border-border-soft last:border-0 hover:bg-panel-2/50">
-                  <td className="px-3 py-2.5 pl-5 text-muted tabular-nums">{i + 1}</td>
-                  <td className="px-3 py-2.5">
-                    {/* Pass the derived active flag: the raw member row carries the DB
-                        is_active column, which stays 1 on a live DB. */}
-                    <MemberCell member={{ ...s.member, isActive: s.isActive }} formerStyle="muted" />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {s.isActive ? (
-                      <span className="rounded-full border border-hydra/30 bg-hydra/10 px-2 py-0.5 text-xs font-medium text-hydra">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="rounded-full border border-border bg-panel-2 px-2 py-0.5 text-xs font-medium text-faint">
-                        Former
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 tabular-nums text-muted">{s.weeksPresent}</td>
-                  <td className="px-3 py-2.5 tabular-nums">{formatDamage(s.hydraTotal)}</td>
-                  <td className="px-3 py-2.5 tabular-nums">{formatDamage(s.chimeraTotal)}</td>
-                  <td className="px-3 py-2.5 tabular-nums text-muted">{formatKeys(s.avgKeys)}</td>
-                  <td className="px-3 py-2.5 pr-5 tabular-nums">{s.participationPct.toFixed(0)}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="xl:h-full">
+          <BenchedRosterTable rows={benched} />
         </div>
-      </section>
+      </div>
     </div>
   );
 }
