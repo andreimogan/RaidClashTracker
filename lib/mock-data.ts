@@ -43,6 +43,15 @@ const FILLER = [
 
 const ALL_NAMES = [...NAMED, ...FILLER]; // 30 members
 
+// Exactly one demo member carries the admin "excused from the Black List" flag
+// (members.is_benched), so the shield icon has somewhere to render in demo mode.
+// The name is chosen deliberately: NcRoughNeck is NOT one of the six the demo
+// Black List lists, so the demo list still shows the same six rows — only its
+// membersJudged count moves, 30 → 29, and that number renders solely in the
+// all-clear empty state, which demo never reaches. Verified by script, not by
+// eye. Change this name only after re-running that check.
+const EXCUSED_DEMO_MEMBER = "NcRoughNeck";
+
 const rng = makeRng(20260623);
 
 export const MEMBERS: Member[] = ALL_NAMES.map((name, i) => ({
@@ -52,6 +61,7 @@ export const MEMBERS: Member[] = ALL_NAMES.map((name, i) => ({
   heroLevel: i < 5 ? 100 : 80 + Math.floor(rng() * 20),
   avatarUrl: null,
   isActive: true,
+  isBenched: name === EXCUSED_DEMO_MEMBER,
 }));
 
 // Per-member strength profile (hydra/chimera damage-per-key in raw units).

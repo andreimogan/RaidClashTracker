@@ -28,9 +28,21 @@ Three honest limits, which the tooling states rather than hides:
 
 If there is no state file, say the budget is unknown and point at `/usage`. Never invent a percentage.
 
+## The instrument — read before trusting any actual
+
+> **`token-report.js --line` does not measure one order, and the error is large enough to invert conclusions.** Diagnosed 2026-08-18 by reading the script and re-running it over the raw transcripts. Until it is fixed, **`docs/build-log.md`'s `Cost:` actuals are not a calibration source** and the section below cannot do its job.
+>
+> 1. **Session-scoped headline.** `analyze()` sums the whole transcript file with no window (`.claude/scripts/token-report.js:145`, called at `:934`); `findSessionFor` takes the newest transcript for the cwd. It resets on a new session *file* only — not on `/compact`, not on a new order. One measured file spanned three orders across four days.
+> 2. **Subagent tokens are omitted entirely.** The script's header rule 2 assumes subagent turns are inline with `isSidechain: true`; in this Claude Code version they live in `<session>/subagents/agent-*.jsonl`, so the `sub` bucket measured **0 in all five** of this project's transcripts. For the 2026-08-17 order the headline was **5.3M / ~$6.35** while 16 subagents actually spent **76.4M / ~$56.26** on the same token basis and the same `PRICING` table. `agents[].tokens` does not rescue it: that reads `toolUseResult.totalTokens`, which excludes cache reads and ran ~50× low.
+> 3. **`plan` can exceed the total it claims to be a fragment of.** `slicePlanCost` ends its window at the first `ExitPlanMode` *after* the planner dispatch; with none — a plan approved in a prior session — it falls back to transcript-end, so the window becomes the entire session and `planner.tokens` is added on top. That is the `plan 5.4M · actual 5.3M` in the log, reproduced at a ratio of 1.018. The script computes `complete: false` for this case and `formatPlanCost` prints a caveat; **`formatLine` (`:757`) — the only form that feeds the build log — drops it.**
+>
+> **What the fix takes** (an order, not a maintenance-pass item): give `analyze()` an order window anchored on the step-1 prompt and persisted per order; fold `<session>/subagents/*.jsonl` into the totals via the existing `subagentTokens()` helper (`:524`), which already knows where they live; and have `formatLine` refuse to emit `plan` when `plan.complete` is false. Correct the header comment's rule 2 in the same change — it is the false premise the whole undercount rests on.
+>
+> **What it already changed.** Six entries concluded "implementer work is 3–10% of the total; main-session accumulation dominates" and recommended fresh sessions. Measured properly, subagents were **~93%** of the last order. That recommendation has been optimising the small half for six orders.
+
 ## Where the cost number comes from
 
-**Prefer this project's history.** Once `docs/build-log.md` holds three or more `Cost:` lines, use them: mean tokens per implementer task, per bounce, per order overhead. A project's own measurements beat any table. Once three or more of those lines carry a `plan NNNk` fragment, their mean replaces the order-overhead row below outright — that row is a guess about your project that your project has since answered.
+**Prefer this project's history.** Once `docs/build-log.md` holds three or more `Cost:` lines, use them: mean tokens per implementer task, per bounce, per order overhead. A project's own measurements beat any table. Once three or more of those lines carry a `plan NNNk` fragment, their mean replaces the order-overhead row below outright — that row is a guess about your project that your project has since answered. **Both sentences are suspended while the instrument above is broken:** dollars have been the better-calibrated half (both orders that forecast a dollar range landed inside it) and per-agent transcript sizes can be measured directly, so forecast from dispatch count × expected agent size and say so.
 
 Until then, fall back to these baselines. They come from real measured runs of this scaffold and are **estimates for orientation, not predictions** — at Sonnet rates, on small projects:
 
@@ -122,3 +134,11 @@ Cost: est 4.2M → actual 4.8M (+14%) · ~$3.40 · cache 97% · 12 dispatches ·
 ```
 
 That is what makes forecasts improve. The maintainer reads these lines and flags systematic bias — consistently 30% under means the baselines or the history-derived means need adjusting, and it says so rather than letting the forecast quietly stay wrong. It watches the `plan` fragment on the same cadence: planning overhead climbing across comparable orders, or eating an outsized share of small ones, means the planner is surveying more than the order needs.
+
+### Bias history, and why the correction has to stop
+
+- **Orders 1–8: under-forecast 8 times out of 8**, direction never once reversing (p ≈ 0.8% under a coin). Magnitude converged: 1.85×, ~6×, 1.9×, 3.07×, 1.57×, ~1.35×, ~1.07×.
+- **Padding was introduced deliberately in response**, and the two orders since came in **−9%** and **−50%**. Read naively that is an over-correction.
+- **Do not read it naively.** Both of those "under" results are products of the broken instrument above — the −50% order actually ran ~8× over once subagent spend is counted. **The 8-of-8 under-run streak was probably never broken.** Adding padding on top of a forecast that was already low, and then removing it because the meter said so, would move the forecast in exactly the wrong direction twice.
+
+**So: leave the padding, do not add more, and do not treat the two "under" orders as evidence of anything until `--line` is fixed.** State in the plan that the actual is unmeasured. A forecast nobody can check is bad; a forecast checked against a number known to be wrong is worse, because it looks checked.

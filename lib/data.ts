@@ -31,6 +31,7 @@ type MemberRow = {
   hero_level: number;
   avatar_url: string | null;
   is_active: boolean;
+  is_benched: boolean;
   created_at: Date;
 };
 type WeekRow = { id: string; week_number: number; start_date: string; end_date: string };
@@ -103,6 +104,11 @@ const toMember = (m: MemberRow): Member => ({
   heroLevel: Number(m.hero_level),
   avatarUrl: m.avatar_url ?? null,
   isActive: m.is_active === true,
+  // Postgres `boolean` reads back as a JS boolean here (measured for this
+  // project), so no Number()-style coercion — but keep `=== true` so a row from
+  // a database that has not had migration 0003 applied yet yields false rather
+  // than undefined on a field the type declares required.
+  isBenched: m.is_benched === true,
 });
 
 const toWeek = (w: WeekRow): Week => ({

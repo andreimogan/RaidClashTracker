@@ -10,6 +10,7 @@ import { TotalPerformanceTable } from "./TotalPerformanceTable";
 import { SectionTitle } from "./SectionTitle";
 import { useWeekPending } from "./WeekTransition";
 import { PerformanceRowsSkeleton, SkeletonLine, skeletonRowCount } from "./Skeleton";
+import { Pagination, usePagination } from "./Pagination";
 
 type SortKey =
   | "keysThisWeek"
@@ -80,14 +81,6 @@ export function PerformanceTable({
 
   const pending = useWeekPending();
 
-  const onSort = (k: SortKey) => {
-    if (k === sortKey) setDir((d) => (d === "desc" ? "asc" : "desc"));
-    else {
-      setSortKey(k);
-      setDir("desc");
-    }
-  };
-
   // Weekly tabs (Hydra/Chimera): filter by name + sort.
   const rows = useMemo(() => {
     if (isTotal) return [];
@@ -112,6 +105,35 @@ export function PerformanceTable({
     });
   }, [totals, query, memberFilter]);
 
+  // Page the Hydra/Chimera rows AFTER filter + sort, so a page is a slice of the
+  // list the reader is actually looking at. The Total tab pages itself inside
+  // TotalPerformanceTable, where its own sort lives; this hook is still called
+  // unconditionally (it would be a conditional hook otherwise) and simply sees
+  // the empty array that `rows` becomes on that tab.
+  const view = usePagination(rows);
+
+  // THE PAGE INDEX RESETS ON EVERY CHANGE THE READER ASKS FOR, and on none that
+  // the app does to them. Two different situations that look alike:
+  //   * a WEEK CHANGE is something the app does under the reader — the requested
+  //     page is kept and t2's clamp folds it into range, so page 3 of a long
+  //     week stays page 3. That rule is untouched here; there is still no reset
+  //     tied to `rows` changing, and still no effect.
+  //   * SEARCH, SORT and TAB are the reader asking for a different list, and the
+  //     answer to "show me players matching 'a'" is never "rows 21-22 of the 22
+  //     that matched" — which is exactly what the clamp alone produced (page 3
+  //     of 3 is in range, so it clamps to nothing). Sorting had the worse
+  //     version: clicking a column while on page 3 shows ranks 21-30 of the new
+  //     order and never the new top, which is the entire reason to sort.
+  // These are event handlers, so `set-state-in-effect` never enters into it.
+  const onSort = (k: SortKey) => {
+    if (k === sortKey) setDir((d) => (d === "desc" ? "asc" : "desc"));
+    else {
+      setSortKey(k);
+      setDir("desc");
+    }
+    view.setPage(1);
+  };
+
   const participationColor = (pct: number) =>
     pct >= 90 ? "text-up" : pct >= 60 ? "text-muted" : "text-down";
 
@@ -126,11 +148,24 @@ export function PerformanceTable({
   // week still gets placeholders — they stand for the unknown incoming week.)
   const emptySearch = query.trim() !== "" && rows.length === 0;
   const showSkeleton = pending && !isTotal && !emptySearch;
-  const skeletonRows = skeletonRowCount(rows.length);
+  // Placeholders stand in for the rows on screen, which is now ONE PAGE of them
+  // — feeding the full filtered length would draw a 30-row slab over a 10-row
+  // table. skeletonRowCount's own cap never comes into play at this size; its
+  // 8-row fallback still covers a currently-empty week.
+  const skeletonRows = skeletonRowCount(view.pageRows.length);
 
+  // No internal scroller and no viewport lock any more: the overview page scrolls
+  // as one document and a page holds 10 rows, so the card is simply as tall as its
+  // rows. `xl:h-full` only makes the card fill its grid cell when it sits beside
+  // the Black List.
+  // `xl:flex xl:flex-col` is the other half of `xl:h-full`: at 2xl the grid
+  // stretches both overview cards to the taller one's height, and without a flex
+  // column the pagination bar's top border lands wherever the rows happen to
+  // end, with dead space beneath it. `mt-auto` on the control seats it at the
+  // card's foot instead. Inert below xl, where nothing stretches.
   return (
-    <section className="card-flush xl:flex xl:h-full xl:w-full xl:flex-col xl:overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3 xl:shrink-0">
+    <section className="card-flush xl:flex xl:h-full xl:flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
         <div>
           <SectionTitle>Clan Performance</SectionTitle>
           <p className="mt-1 text-sm text-muted">
@@ -147,7 +182,13 @@ export function PerformanceTable({
           {TABS.map((t) => (
             <button
               key={t.key}
-              onClick={() => setScope(t.key)}
+              onClick={() => {
+                setScope(t.key);
+                // A different tab is a different list. Hydra->Chimera used to
+                // keep the index while a detour through Total lost it (that
+                // hook unmounts), so the behaviour was not even consistent.
+                view.setPage(1);
+              }}
               className={`pill ${scope === t.key ? `bg-panel ${t.accent} shadow-[0_0_16px_-6px_currentColor]` : ""}`}
             >
               {t.label}
@@ -156,12 +197,15 @@ export function PerformanceTable({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-3 xl:shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-3">
         <div className="flex w-72 items-center gap-2 inset px-3 py-2">
           <Search size={15} className="text-muted" />
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              view.setPage(1);
+            }}
             placeholder="Search player..."
             className="w-full bg-transparent text-sm outline-none placeholder:text-faint"
           />
@@ -182,11 +226,26 @@ export function PerformanceTable({
       </div>
 
       {isTotal ? (
-        <TotalPerformanceTable rows={totalRows} emptyQuery={query} />
+        // `filterKey` is the reader's two narrowing controls as one value, so
+        // the Total tab can send itself back to page 1 when either moves. Note
+        // it is built from `query`/`memberFilter` and NOT from `totalRows`:
+        // `totals` is a server prop and gets a new array identity on every week
+        // navigation, which would turn a week change into a page reset.
+        // `memberFilter` first because it is a closed set with no "|" in it, so
+        // the join is unambiguous however the reader spells their search.
+        <TotalPerformanceTable
+          rows={totalRows}
+          emptyQuery={query}
+          filterKey={`${memberFilter}|${query}`}
+        />
       ) : (
-      <div className="overflow-x-auto xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
+      <>
+      {/* The HORIZONTAL scroller stays — the min-w-[860px] grid still needs it
+          on a narrow viewport. Only the vertical one, and the sticky header that
+          served it, are gone; a page of 10 rows is what replaced them. */}
+      <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] text-sm">
-          <thead className="text-left text-[11px] uppercase tracking-wider text-muted xl:sticky xl:top-0 xl:z-10 xl:bg-panel">
+          <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
             <tr className="border-b border-border">
               <th className="px-3 py-2 pl-5 font-medium">#</th>
               <th className="px-3 py-2 font-medium">Player</th>
@@ -203,12 +262,13 @@ export function PerformanceTable({
               report different busy states for one in-flight week change. */}
           <tbody aria-busy={pending}>
             {showSkeleton && <PerformanceRowsSkeleton rows={skeletonRows} />}
-            {!showSkeleton && rows.map((r, i) => (
+            {!showSkeleton && view.pageRows.map((r, i) => (
               <tr
                 key={r.member.id}
                 className="border-b border-border-soft last:border-0 hover:bg-panel-2/50"
               >
-                <td className="px-3 py-2.5 pl-5 text-muted tabular-nums">{i + 1}</td>
+                {/* `offset + i + 1`, so rank 11 opens page 2 instead of a second rank 1. */}
+                <td className="px-3 py-2.5 pl-5 text-muted tabular-nums">{view.offset + i + 1}</td>
                 <td className="px-3 py-2.5">
                   <MemberCell member={r.member} />
                 </td>
@@ -223,14 +283,32 @@ export function PerformanceTable({
             ))}
             {!showSkeleton && rows.length === 0 && (
               <tr>
+                {/* The quoted term only when there IS one. A genuinely empty
+                    week hit this row with `No players match “”.` — a pair of
+                    empty quotes reads as a bug, not as an empty week. Same
+                    shape TotalPerformanceTable already used. */}
                 <td colSpan={7} className="px-5 py-10 text-center text-muted">
-                  No players match “{query}”.
+                  No players match{query.trim() ? ` “${query}”` : ""}.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+      {/* OUTSIDE the table, sibling of the scroller, still inside the card. It is
+          chrome: it stays real and interactive while the rows swap, and the page
+          index is never reset by a week change — the hook clamps a short week
+          back into range on its own. `label` names the landmark and the
+          announcement, because the Black List's control sits beside this one at
+          2xl and "Pagination" twice tells a screen-reader user nothing. */}
+      <Pagination
+        {...view}
+        onPageChange={view.setPage}
+        itemLabel="players"
+        label="Clan Performance"
+        className="xl:mt-auto"
+      />
+      </>
       )}
     </section>
   );

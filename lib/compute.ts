@@ -1,7 +1,17 @@
 // Pure functions that turn raw clash data into the derived metrics the UI shows.
 // Kept framework-free so it works for both the Supabase and mock data paths.
-import { MAX_KEYS, maxKeysFor } from "./constants";
+import {
+  BLACKLIST_MIN_KEYS_PER_WEEK,
+  BLACKLIST_MIN_MISSES,
+  BLACKLIST_MIN_WEEKS_PRESENT,
+  BLACKLIST_WINDOW_WEEKS,
+  MAX_KEYS,
+  maxKeysFor,
+} from "./constants";
 import type {
+  BlackListResult,
+  BlackListRow,
+  BlackListRule,
   ClashMeta,
   ClashResult,
   ClashType,
@@ -101,7 +111,7 @@ export function getOverview(
     totalDamage,
     avgDamagePerKey: totalKeys ? totalDamage / totalKeys : 0,
     membersParticipated: participants.length,
-    // Roster present for this week + clash (participants + benched 0-key rows),
+    // Roster present for this week + clash (participants + zero-key rows),
     // not the all-time member count — the roster varies week to week.
     totalMembers: rows.length,
     progress: keysPossible ? (totalKeys / keysPossible) * 100 : 0,
@@ -122,7 +132,7 @@ export function getPerformance(
   const maxKeys = maxKeysFor(scope);
 
   // Show every member who has an uploaded row for this week + scope — including
-  // benched (0-key) rows and former members no longer in the clan. "Former" is
+  // zero-key rows and former members no longer in the clan. "Former" is
   // derived from the latest week's roster (same notion as the Members page), not
   // the DB is_active column.
   const activeIds = activeMemberIds(ds);
@@ -243,7 +253,7 @@ export function getMemberProfile(ds: Dataset, memberId: string): MemberProfile |
   if (!member) return null;
 
   const weeks = sortedWeeks(ds);
-  // Weeks where the member has any row (incl. benched 0-key rows).
+  // Weeks where the member has any row (incl. zero-key rows).
   const presentWeekIds = new Set(
     ds.results.filter((r) => r.memberId === memberId).map((r) => r.weekId),
   );
@@ -318,4 +328,155 @@ export function getAllWeeksTotals(ds: Dataset): MemberTotalsRow[] {
       } satisfies MemberTotalsRow;
     })
     .filter((r): r is MemberTotalsRow => r !== null);
+}
+
+// The clashes a tracked week is expected to hold. Read off MAX_KEYS so this and
+// maxKeysFor("total") — the denominator a week is judged against — can never
+// disagree about which clashes make up a week.
+const TRACKED_CLASHES = Object.keys(MAX_KEYS) as ClashType[];
+
+// A week is judged only once BOTH clashes are on the board. Hydra closes
+// Wed->Wed and Chimera Fri->Thu, and lib/import.ts loads one clash for one week
+// at a time, so the normal admin workflow always leaves a window where a tracked
+// week holds only Hydra (or only Chimera). Judging that half-imported week
+// scores every member against a 5-key denominator when only 3 keys' worth of
+// rows exist, manufacturing misses out of data that simply hasn't been uploaded
+// yet — and reads are public, so the whole clan sees the accusation.
+//
+// The owner's rule: a tracked week always runs both clashes, so an incomplete
+// week is never a real shortfall, only a mid-import state. It drops out of the
+// window until the second import lands, and `rule.weekNumbers` shows the reader
+// exactly which weeks were judged.
+function isWeekComplete(ds: Dataset, week: Week): boolean {
+  const imported = new Set(
+    ds.results.filter((r) => r.weekId === week.id).map((r) => r.clashType),
+  );
+  return TRACKED_CLASHES.every((c) => imported.has(c));
+}
+
+// Members falling short on clash participation over the trailing window — the
+// Black List. Derived from the same rows every other metric reads: there is no
+// curated list and no write surface behind it.
+//
+// All-weeks by design (no week argument, like getAllWeeksTotals), so the week
+// picker does not change it.
+//
+// Which weeks: the last BLACKLIST_WINDOW_WEEKS *fully imported* weeks (see
+// isWeekComplete). Who is judged: members on the roster as of the newest judged
+// week who have rows in at least BLACKLIST_MIN_WEEKS_PRESENT of the window weeks
+// — a newcomer with one tracked week is too new to name. Only weeks the member
+// was actually present for are counted, the same way getMemberProfile skips
+// gaps: a week with no row at all is a roster gap, not a miss, so a newcomer
+// with perfect keys is never listed for the weeks before they joined. A present
+// week (including a zero-key row) is missed when the member's combined
+// Hydra + Chimera keys come in under BLACKLIST_MIN_KEYS_PER_WEEK of the week's
+// available keys (maxKeysFor("total")).
+//
+// One roster exception: a member an admin has excused (members.is_benched) is
+// dropped at the roster gate, so they appear in neither `rows` nor
+// `membersJudged` — the list does not measure them at all. Because that makes
+// the exclusion invisible on the list itself, the result also carries
+// `excusedCount`: how many roster members were dropped that way, so the UI can
+// say the smaller denominator has a reason.
+export function getBlackList(ds: Dataset): BlackListResult {
+  // Floor at 1: slice(-0) is slice(0), which would quietly judge every week in
+  // the dataset if the constant were ever re-pinned to 0.
+  const windowSize = Math.max(1, BLACKLIST_WINDOW_WEEKS);
+  const windowWeeks = sortedWeeks(ds)
+    .filter((w) => isWeekComplete(ds, w))
+    .slice(-windowSize);
+  const maxKeysPerWeek = maxKeysFor("total");
+  const rule: BlackListRule = {
+    windowWeeks: BLACKLIST_WINDOW_WEEKS,
+    minKeysPerWeek: BLACKLIST_MIN_KEYS_PER_WEEK,
+    maxKeysPerWeek,
+    minMisses: BLACKLIST_MIN_MISSES,
+    minWeeksPresent: BLACKLIST_MIN_WEEKS_PRESENT,
+    weekNumbers: windowWeeks.map((w) => w.weekNumber),
+  };
+  // A connected-but-empty database is not an error state, and neither is a
+  // clan whose only tracked week is still half imported: the window is whatever
+  // complete weeks exist, and with none there is nobody to judge. membersJudged
+  // 0 is what tells the UI this is "not measured", not "all clear".
+  // excusedCount is 0 here too, not "unknown": with no judged week there is no
+  // roster to scope it to, so nobody was excused FROM ANYTHING. Zeroing it keeps
+  // the shape uniform across both exits, so a caller never has to branch.
+  if (!windowWeeks.length) return { rule, rows: [], membersJudged: 0, excusedCount: 0 };
+
+  // The roster as of the newest JUDGED week rather than activeMemberIds', which
+  // reads the newest week in the dataset. The two are the same set whenever that
+  // week is complete; they differ only mid-import, and there taking the roster
+  // off a half-imported week drops anyone whose only row that week belonged to
+  // the clash that hasn't landed yet — a current clanmate silently unjudged.
+  const rosterWeekId = windowWeeks[windowWeeks.length - 1].id;
+  const activeIds = new Set(
+    ds.results.filter((r) => r.weekId === rosterWeekId).map((r) => r.memberId),
+  );
+  // Counted here, off the SAME roster set the gate below uses, so the number can
+  // never disagree with the gate that produced it: these are the people who would
+  // have been measured had an admin not excused them. Deliberately not every
+  // excused member in the dataset — one who is also off the current roster was
+  // never a candidate, and including them would print a figure that matches
+  // nothing the reader can see. Nothing is subtracted anywhere: `judged` below
+  // simply never contains them.
+  const excusedCount = ds.members.filter(
+    (m) => activeIds.has(m.id) && m.isBenched,
+  ).length;
+
+  const windowWeekIds = new Set(windowWeeks.map((w) => w.id));
+  // "Present" = the member has any row that week, incl. a zero-key row.
+  const presence = new Set(
+    ds.results
+      .filter((r) => windowWeekIds.has(r.weekId))
+      .map((r) => `${r.memberId}:${r.weekId}`),
+  );
+
+  // Everyone who passed BOTH gates — on the roster, and present for enough of
+  // the window to be measurable. This is the denominator behind the empty
+  // state: zero rows out of a non-empty `judged` is genuinely good news, zero
+  // rows out of an empty one just means nobody could be measured.
+  const judged = ds.members
+    // Two roster gates, and the second one is total by design: an excused member
+    // (members.is_benched) leaves `rows` AND leaves `judged`, so they are absent
+    // from the listing and from the denominator the all-clear sentence quotes.
+    // Filtering later, at `rows`, would have kept them in that count.
+    .filter((m) => activeIds.has(m.id) && !m.isBenched)
+    .map((m) => {
+      const present = windowWeeks
+        .filter((w) => presence.has(`${m.id}:${w.id}`))
+        .map((w) => ({
+          weekNumber: w.weekNumber,
+          keys: aggregateMemberWeek(ds, m.id, w.id, "total").keys,
+        }));
+
+      const missedWeekNumbers = present
+        .filter((w) => w.keys < BLACKLIST_MIN_KEYS_PER_WEEK)
+        .map((w) => w.weekNumber);
+      const keysUsed = present.reduce((s, w) => s + w.keys, 0);
+      const keysPossible = present.length * maxKeysPerWeek;
+
+      return {
+        member: { ...m, isActive: true }, // roster-only by construction
+        weeksConsidered: present.length,
+        missedWeeks: missedWeekNumbers.length,
+        missedWeekNumbers,
+        keysUsed,
+        keysPossible,
+        participationPct: keysPossible ? (keysUsed / keysPossible) * 100 : 0,
+      } satisfies BlackListRow;
+    })
+    .filter((r) => r.weeksConsidered >= BLACKLIST_MIN_WEEKS_PRESENT);
+
+  const rows = judged.filter((r) => r.missedWeeks >= BLACKLIST_MIN_MISSES);
+
+  // Worst first: most missed weeks, then lowest participation, then by name so
+  // the order is stable for members who tie on both.
+  rows.sort(
+    (a, b) =>
+      b.missedWeeks - a.missedWeeks ||
+      a.participationPct - b.participationPct ||
+      a.member.inGameName.localeCompare(b.member.inGameName),
+  );
+
+  return { rule, rows, membersJudged: judged.length, excusedCount };
 }
